@@ -174,4 +174,4 @@ On mobile devices, open the app in your browser and use **"Add to Home Screen"**
 
 ## 📄 License
 
-MIT © [Your Name](https://github.com/your-username)
+MIT © [vidson313](https://github.com/your-username)

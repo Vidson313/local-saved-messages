@@ -1,5 +1,21 @@
 # Local Saved Messages
 
+<p align="center">
+  <img src="./screenshots/main.png" width="100%" />
+</p>
+
+---
+
+## 📱 Mobile Preview
+
+<p align="center">
+  <img src="./screenshots/mobile-1.png" width="30%" />
+  <img src="./screenshots/Mobile-2.png" width="30%" />
+  <img src="./screenshots/mobile-3.png" width="30%" />
+</p>
+
+---
+
 A lightweight, self-hosted web application that replicates Telegram's "Saved Messages" feature. Host it on your home PC and access it from any device on your local network — a universal, real-time clipboard and file-sharing hub.
 
 ![Next.js](https://img.shields.io/badge/Next.js-15.3-black?logo=next.js)

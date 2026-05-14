@@ -1,0 +1,9 @@
+node_modules
+.next
+*.log
+data
+public/uploads/*
+!public/uploads/.gitkeep
+.env
+.vscode/
+context.md

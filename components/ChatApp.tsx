@@ -19,6 +19,8 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { useAppLock, LockScreen, SetPinModal } from "@/components/ui/AppLockModal";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { TagEditor } from "@/components/ui/TagEditor";
+import { TagList } from "@/components/ui/TagBadge";
 
 type Chat = {
   id: string;
@@ -38,6 +40,7 @@ type Msg = {
   mimeType: string | null;
   pinned: boolean;
   saved: boolean;
+  tags: string[];
   createdAt: string;
 };
 
@@ -68,7 +71,8 @@ type IconName =
   | "keyboard"
   | "lock"
   | "forward"
-  | "reply";
+  | "reply"
+  | "tag";
 
 const EMOJI_OPTIONS = ["💾", "📌", "📂", "🗂️", "📝", "💡", "🔖", "⭐", "🎵", "🖼️", "🎬", "📚", "🔧", "💼", "🏠", "🎮", "💰", "🎯", "❤️", "🚀"];
 
@@ -233,6 +237,12 @@ function Icon({ name }: { name: IconName }) {
       <>
         <path d="m9 17-5-5 5-5" />
         <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+      </>
+    ),
+    tag: (
+      <>
+        <path d="M20.6 9.6l-8.2-8.2a1 1 0 0 0-.7-.3H4a1 1 0 0 0-1 1v7.7a1 1 0 0 0 .3.7l8.2 8.2a1 1 0 0 0 1.4 0l8.7-8.7a1 1 0 0 0 0-1.4z" />
+        <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
       </>
     )
   };
@@ -418,6 +428,9 @@ export default function ChatApp() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [mobileNavTab, setMobileNavTab] = useState<"chats" | "search" | "saved" | "settings">("chats");
   const [replyToMessage, setReplyToMessage] = useState<Msg | null>(null);
+  const [tagEditMessageId, setTagEditMessageId] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [filterTag, setFilterTag] = useState<string | null>(null);
 
   const appLock = useAppLock();
   useAppFontSize();
@@ -456,7 +469,7 @@ export default function ChatApp() {
   }
 
   useEffect(() => {
-    Promise.all([syncChats(), syncMessages()]).finally(() => setInitialLoading(false));
+    Promise.all([syncChats(), syncMessages(), fetchAllTags()]).finally(() => setInitialLoading(false));
     const msgInterval = window.setInterval(syncMessages, 2000);
     const chatInterval = window.setInterval(syncChats, 5000);
     const es = new EventSource("/api/events");
@@ -471,7 +484,7 @@ export default function ChatApp() {
       if (data.type === "chat-deleted") {
         setChats((prev) => prev.filter((c) => c.id !== data.chatId));
         setMessages((prev) => prev.filter((m) => m.chatId !== data.chatId));
-        setActiveChatId((current) => current === data.chatId ? "default" : current);
+        setActiveChatId((current) => { if (current === data.chatId) { setFilterTag(null); return "default"; } return current; });
       }
     };
 
@@ -494,13 +507,34 @@ export default function ChatApp() {
   const chatMessages = useMemo(() => allMessages.filter((m) => m.chatId === activeChatId), [allMessages, activeChatId]);
 
   const filteredMessages = useMemo(() => {
+    let result = chatMessages;
+
+    if (filterTag) {
+      result = result.filter((m) => (m.tags ?? []).includes(filterTag));
+    }
+
     const needle = query.trim().toLowerCase();
-    if (!needle) return chatMessages;
-    return chatMessages.filter((message) => {
-      const fileName = message.fileName || "";
-      return `${message.content} ${fileName}`.toLowerCase().includes(needle);
-    });
-  }, [chatMessages, query]);
+    if (needle) {
+      if (needle.startsWith("#")) {
+        const tagNeedle = needle.slice(1);
+        result = result.filter((m) => (m.tags ?? []).some((t) => t.includes(tagNeedle)));
+      } else {
+        result = result.filter((message) => {
+          const fileName = message.fileName || "";
+          const tagText = (message.tags ?? []).map((t) => `#${t}`).join(" ");
+          return `${message.content} ${fileName} ${tagText}`.toLowerCase().includes(needle);
+        });
+      }
+    }
+
+    return result;
+  }, [chatMessages, query, filterTag]);
+
+  const chatTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const m of chatMessages) for (const t of m.tags ?? []) tagSet.add(t);
+    return Array.from(tagSet).sort();
+  }, [chatMessages]);
 
   const pinnedMessages = useMemo(() => chatMessages.filter((m) => m.pinned), [chatMessages]);
 
@@ -747,6 +781,36 @@ export default function ChatApp() {
     setContextMenu((prev) => ({ ...prev, visible: false }));
   }
 
+  async function fetchAllTags() {
+    try {
+      const res = await fetch("/api/tags");
+      if (res.ok) setAllTags(await res.json());
+    } catch { /* ignore */ }
+  }
+
+  async function saveMessageTags(id: string, tags: string[]) {
+    try {
+      const res = await fetch(`/api/messages/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags })
+      });
+      if (!res.ok) throw new Error("Tag update failed");
+      const updated = (await res.json()) as Msg;
+      setMessages((prev) => mergeById([...prev.filter((m) => m.id !== id), updated]));
+      toast.success("Tags updated.");
+      fetchAllTags();
+    } catch {
+      toast.error("Failed to update tags.");
+    }
+  }
+
+  function openTagEditor(messageId: string) {
+    setTagEditMessageId(messageId);
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+    fetchAllTags();
+  }
+
   function highlightText(text: string, needle: string): ReactNode {
     if (!needle) return text;
     const regex = new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
@@ -766,7 +830,7 @@ export default function ChatApp() {
     { id: "search", label: "Search Messages", icon: "\uD83D\uDD0D", shortcut: "/", group: "Actions", action: () => searchInputRef.current?.focus() },
     { id: "select-mode", label: "Select Messages", icon: "\u2611", group: "Actions", action: () => setSelectMode(true) },
     { id: "lock", label: appLock.hasPin ? "Lock App" : "Set PIN Lock", icon: "\uD83D\uDD12", group: "Settings", action: () => { if (appLock.hasPin) appLock.lock(); else setShowSetPinModal(true); } },
-    ...chats.map((c) => ({ id: `chat-${c.id}`, label: c.name, icon: c.avatar || "\uD83D\uDCBE", group: "Chats", action: () => { setActiveChatId(c.id); setDesktopHomeView(false); setMobileView("chat"); } }))
+    ...chats.map((c) => ({ id: `chat-${c.id}`, label: c.name, icon: c.avatar || "\uD83D\uDCBE", group: "Chats", action: () => { setActiveChatId(c.id); setFilterTag(null); setDesktopHomeView(false); setMobileView("chat"); } }))
   ], [chats, activeChatId, appLock.hasPin]);
 
   useKeyboardShortcuts(useMemo(() => [
@@ -791,6 +855,7 @@ export default function ChatApp() {
       const chat = (await res.json()) as Chat;
       setChats((prev) => [...prev, chat]);
       setActiveChatId(chat.id);
+      setFilterTag(null);
       setDesktopHomeView(false);
       setMobileView("chat");
       setShowNewChatModal(false);
@@ -828,7 +893,7 @@ export default function ChatApp() {
       if (!res.ok) throw new Error("Delete failed");
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       setMessages((prev) => prev.filter((m) => m.chatId !== chatId));
-      if (activeChatId === chatId) setActiveChatId("default");
+      if (activeChatId === chatId) { setActiveChatId("default"); setFilterTag(null); }
     } catch {
       toast.error("Failed to delete chat.");
     }
@@ -1056,6 +1121,7 @@ export default function ChatApp() {
                 aria-selected={isActive}
                 onClick={() => {
                   setActiveChatId(chat.id);
+                  setFilterTag(null);
                   setDesktopHomeView(false);
                   setMobileView("chat");
                   setQuery("");
@@ -1249,6 +1315,30 @@ export default function ChatApp() {
           </div>
         )}
 
+        {chatTags.length > 0 && (
+          <div className="tg-tag-filter-bar" role="toolbar" aria-label="Filter by tag">
+            <span className="tg-tag-filter-label">
+              <Icon name="tag" />
+              Tags:
+            </span>
+            {chatTags.map((tag) => (
+              <button
+                key={tag}
+                className={`tg-tag-filter-chip ${filterTag === tag ? "active" : ""}`}
+                onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+                aria-pressed={filterTag === tag}
+              >
+                #{tag}
+              </button>
+            ))}
+            {filterTag && (
+              <button className="tg-tag-filter-clear" onClick={() => setFilterTag(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="tg-history" ref={historyRef}>
 
           {initialLoading ? <MessageListSkeleton /> : filteredMessages.length === 0 && (
@@ -1346,6 +1436,14 @@ export default function ChatApp() {
                       </div>
                     )}
 
+                    {(message.tags ?? []).length > 0 && (
+                      <TagList
+                        tags={message.tags}
+                        onTagClick={(tag) => setFilterTag(filterTag === tag ? null : tag)}
+                        size="sm"
+                      />
+                    )}
+
                     <div className="tg-bubble-footer">
                       <span>{formatTime(message.createdAt)}</span>
                     </div>
@@ -1436,6 +1534,16 @@ export default function ChatApp() {
               >
                 <Icon name="reply" />
                 <span>Reply</span>
+              </button>
+              <button
+                className="tg-context-item"
+                onClick={() => {
+                  if (contextMenu.messageId) openTagEditor(contextMenu.messageId);
+                }}
+              >
+                <Icon name="tag" />
+                <span>Tags</span>
+                <kbd className="tg-context-kbd">T</kbd>
               </button>
               <button
                 className="tg-context-item"
@@ -1789,6 +1897,16 @@ export default function ChatApp() {
           </div>
         </div>
       )}
+      {/* ── Tag Editor Modal ── */}
+      <TagEditor
+        isOpen={tagEditMessageId !== null}
+        onClose={() => setTagEditMessageId(null)}
+        tags={(tagEditMessageId ? messages.find((m) => m.id === tagEditMessageId)?.tags : []) ?? []}
+        allTags={allTags}
+        onSave={(tags) => {
+          if (tagEditMessageId) saveMessageTags(tagEditMessageId, tags);
+        }}
+      />
     </main>
     </ErrorBoundary>
   );

@@ -34,12 +34,14 @@ export async function PATCH(
 
   if (typeof body.pinned === "boolean") updates.pinned = body.pinned;
   if (typeof body.saved === "boolean") updates.saved = body.saved;
+  if (Array.isArray(body.tags)) updates.tags = body.tags.filter((t: unknown) => typeof t === "string");
+  if (typeof body.content === "string") updates.content = body.content;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid updates" }, { status: 400 });
   }
 
-  const message = await updateMessage(id, updates as { pinned?: boolean; saved?: boolean });
+  const message = await updateMessage(id, updates as { pinned?: boolean; saved?: boolean; tags?: string[]; content?: string });
 
   if (!message) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

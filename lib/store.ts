@@ -20,6 +20,7 @@ export type Message = {
   mimeType: string | null;
   pinned: boolean;
   saved: boolean;
+  tags: string[];
   createdAt: string;
 };
 
@@ -67,7 +68,8 @@ async function readMessages(): Promise<Message[]> {
     ...m,
     chatId: m.chatId ?? "default",
     pinned: m.pinned ?? false,
-    saved: m.saved ?? false
+    saved: m.saved ?? false,
+    tags: m.tags ?? []
   }));
 }
 
@@ -168,6 +170,7 @@ export async function createTextMessage(content: string, chatId: string = "defau
       mimeType: null,
       pinned: false,
       saved: false,
+      tags: [],
       createdAt: new Date().toISOString()
     };
     messages.push(message);
@@ -195,6 +198,7 @@ export async function createFileMessage(input: {
       mimeType: input.mimeType,
       pinned: false,
       saved: false,
+      tags: [],
       createdAt: new Date().toISOString()
     };
     messages.push(message);
@@ -214,7 +218,7 @@ export async function deleteMessage(id: string) {
   });
 }
 
-export async function updateMessage(id: string, updates: Partial<Pick<Message, "pinned" | "saved">>) {
+export async function updateMessage(id: string, updates: Partial<Pick<Message, "pinned" | "saved" | "tags" | "content">>) {
   return withWriteLock(async () => {
     const messages = await readMessages();
     const index = messages.findIndex((item) => item.id === id);
@@ -224,6 +228,15 @@ export async function updateMessage(id: string, updates: Partial<Pick<Message, "
     await writeMessages(messages);
     return messages[index];
   });
+}
+
+export async function getAllTags(): Promise<string[]> {
+  const messages = await readMessages();
+  const tagSet = new Set<string>();
+  for (const m of messages) {
+    for (const t of m.tags ?? []) tagSet.add(t);
+  }
+  return Array.from(tagSet).sort();
 }
 
 export async function deleteMessages(ids: string[]) {

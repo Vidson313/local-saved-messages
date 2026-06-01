@@ -2359,3 +2359,287 @@ img[loading="lazy"] {
 .tg-pin-key-empty {
   visibility: hidden;
 }
+
+/* ── Tag System ── */
+
+.tg-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(51, 144, 236, 0.15);
+  color: var(--tg-accent);
+  white-space: nowrap;
+  line-height: 1.4;
+  transition: background 0.15s;
+}
+
+.tg-tag-badge-md {
+  padding: 3px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.tg-tag-badge-clickable {
+  cursor: pointer;
+}
+
+.tg-tag-badge-clickable:hover {
+  background: rgba(51, 144, 236, 0.25);
+}
+
+.tg-tag-hash {
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.tg-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.6;
+  border-radius: 50%;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.tg-tag-remove:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tg-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Tag Editor Modal */
+
+.tg-tag-editor {
+  background: var(--tg-sidebar-bg);
+  border-radius: 12px;
+  width: 380px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: tg-modal-in 0.2s ease;
+}
+
+.tg-tag-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tg-border);
+  color: var(--tg-text);
+}
+
+.tg-tag-editor-header strong {
+  flex: 1;
+  font-size: 15px;
+}
+
+.tg-tag-editor-body {
+  padding: 16px;
+}
+
+.tg-tag-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--tg-border);
+  border-radius: 8px;
+  background: var(--tg-bg);
+  min-height: 42px;
+  align-items: center;
+  transition: border-color 0.15s;
+}
+
+.tg-tag-input-container:focus-within {
+  border-color: var(--tg-accent);
+}
+
+.tg-tag-input {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--tg-text);
+  font-size: 14px;
+  padding: 2px 4px;
+}
+
+.tg-tag-input::placeholder {
+  color: var(--tg-hint);
+}
+
+.tg-tag-hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--tg-hint);
+  font-size: 12px;
+}
+
+.tg-tag-suggestions {
+  margin-top: 12px;
+}
+
+.tg-tag-suggestions-label {
+  display: block;
+  color: var(--tg-hint);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.tg-tag-suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tg-tag-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px dashed var(--tg-border);
+  background: none;
+  color: var(--tg-hint);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tg-tag-suggestion:hover {
+  border-color: var(--tg-accent);
+  color: var(--tg-accent);
+  background: rgba(51, 144, 236, 0.08);
+}
+
+.tg-tag-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--tg-border);
+}
+
+.tg-tag-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.tg-tag-btn-cancel {
+  background: var(--tg-search-bg);
+  color: var(--tg-text);
+}
+
+.tg-tag-btn-cancel:hover {
+  opacity: 0.8;
+}
+
+.tg-tag-btn-save {
+  background: var(--tg-accent);
+  color: #fff;
+}
+
+.tg-tag-btn-save:hover {
+  opacity: 0.9;
+}
+
+/* Tag filter bar */
+
+.tg-tag-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--tg-border);
+  scrollbar-width: none;
+}
+
+.tg-tag-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tg-tag-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--tg-hint);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tg-tag-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--tg-border);
+  background: none;
+  color: var(--tg-hint);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.tg-tag-filter-chip:hover {
+  border-color: var(--tg-accent);
+  color: var(--tg-accent);
+}
+
+.tg-tag-filter-chip.active {
+  background: rgba(51, 144, 236, 0.15);
+  border-color: var(--tg-accent);
+  color: var(--tg-accent);
+}
+
+.tg-tag-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  border: none;
+  background: none;
+  color: var(--tg-hint);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.tg-tag-filter-clear:hover {
+  color: var(--tg-accent);
+}
+
+/* Context menu tag item */
+
+.tg-ctx-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

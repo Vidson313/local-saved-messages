@@ -2,8 +2,9 @@
 
 import { useThemeContext } from "./ThemeProvider";
 import { ThemeToggle } from "./ThemeToggle";
-import { Settings, X, Type, Palette } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Settings, X, Type, Palette, Lock, Shield } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 const FONT_SIZE_KEY = "app-font-size";
 const FONT_SIZES = [
@@ -45,11 +46,16 @@ export function useAppFontSize() {
 type SettingsModalProps = {
   open: boolean;
   onClose: () => void;
+  onOpenSetPin?: () => void;
+  hasPin?: boolean;
+  onLock?: () => void;
 };
 
-export function SettingsModal({ open, onClose }: SettingsModalProps) {
+export function SettingsModal({ open, onClose, onOpenSetPin, hasPin, onLock }: SettingsModalProps) {
   const { mode } = useThemeContext();
   const { fontSize, changeFontSize } = useAppFontSize();
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -63,8 +69,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   if (!open) return null;
 
   return (
-    <div className="tg-modal-overlay" onClick={onClose}>
-      <div className="tg-modal tg-settings-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="tg-modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Settings">
+      <div ref={modalRef} className="tg-modal tg-settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="tg-modal-header">
           <div className="tg-settings-header-left">
             <Settings size={20} />
@@ -111,11 +117,44 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </div>
           </div>
 
+          {/* Security Section */}
+          <div className="tg-settings-section">
+            <div className="tg-settings-section-header">
+              <Shield size={18} />
+              <span>Security</span>
+            </div>
+            <div className="tg-settings-row">
+              <span className="tg-settings-label">PIN Lock</span>
+              <button className="tg-btn-secondary" onClick={onOpenSetPin}>
+                {hasPin ? "Change PIN" : "Set PIN"}
+              </button>
+            </div>
+            {hasPin && (
+              <button className="tg-btn-secondary" onClick={onLock} style={{ alignSelf: "flex-start" }}>
+                <Lock size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                Lock Now
+              </button>
+            )}
+          </div>
+
+          {/* Keyboard Shortcuts */}
+          <div className="tg-settings-section">
+            <div className="tg-settings-section-header">
+              <span>Keyboard Shortcuts</span>
+            </div>
+            <div className="tg-shortcuts-list">
+              <div className="tg-shortcut-row"><span>Command Palette</span><kbd>Ctrl+K</kbd></div>
+              <div className="tg-shortcut-row"><span>Search</span><kbd>/</kbd></div>
+              <div className="tg-shortcut-row"><span>Settings</span><kbd>Ctrl+,</kbd></div>
+              <div className="tg-shortcut-row"><span>Close modal</span><kbd>Esc</kbd></div>
+            </div>
+          </div>
+
           {/* About Section */}
           <div className="tg-settings-section">
             <div className="tg-settings-about">
               <strong>Local Saved Messages</strong>
-              <small>v1.0.0 · Built with Next.js</small>
+              <small>v2.0.0 · Built with Next.js 15</small>
             </div>
           </div>
         </div>

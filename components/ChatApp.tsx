@@ -14,6 +14,11 @@ import {
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { SettingsModal, useAppFontSize } from "@/components/ui/SettingsModal";
+import { ChatListSkeleton, MessageListSkeleton, LoadingSpinner } from "@/components/ui/Skeleton";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { CommandPalette } from "@/components/ui/CommandPalette";
+import { useAppLock, LockScreen, SetPinModal } from "@/components/ui/AppLockModal";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 type Chat = {
   id: string;
@@ -59,7 +64,11 @@ type IconName =
   | "plus"
   | "edit"
   | "camera"
-  | "back";
+  | "back"
+  | "keyboard"
+  | "lock"
+  | "forward"
+  | "reply";
 
 const EMOJI_OPTIONS = ["💾", "📌", "📂", "🗂️", "📝", "💡", "🔖", "⭐", "🎵", "🖼️", "🎬", "📚", "🔧", "💼", "🏠", "🎮", "💰", "🎯", "❤️", "🚀"];
 
@@ -200,6 +209,30 @@ function Icon({ name }: { name: IconName }) {
     back: (
       <>
         <path d="m15 18-6-6 6-6" />
+      </>
+    ),
+    keyboard: (
+      <>
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
+      </>
+    ),
+    lock: (
+      <>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </>
+    ),
+    forward: (
+      <>
+        <path d="m15 17 5-5-5-5" />
+        <path d="M4 18v-2a4 4 0 0 1 4-4h12" />
+      </>
+    ),
+    reply: (
+      <>
+        <path d="m9 17-5-5 5-5" />
+        <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
       </>
     )
   };
@@ -377,8 +410,18 @@ export default function ChatApp() {
   const [editChatAvatar, setEditChatAvatar] = useState("");
   const [editChatAvatarType, setEditChatAvatarType] = useState<"emoji" | "image">("emoji");
   const [showSettings, setShowSettings] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showSetPinModal, setShowSetPinModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [mobileNavTab, setMobileNavTab] = useState<"chats" | "search" | "saved" | "settings">("chats");
+  const [replyToMessage, setReplyToMessage] = useState<Msg | null>(null);
 
+  const appLock = useAppLock();
   useAppFontSize();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -413,8 +456,7 @@ export default function ChatApp() {
   }
 
   useEffect(() => {
-    syncChats();
-    syncMessages();
+    Promise.all([syncChats(), syncMessages()]).finally(() => setInitialLoading(false));
     const msgInterval = window.setInterval(syncMessages, 2000);
     const chatInterval = window.setInterval(syncChats, 5000);
     const es = new EventSource("/api/events");
@@ -673,7 +715,66 @@ export default function ChatApp() {
       e.preventDefault();
       e.currentTarget.form?.requestSubmit();
     }
+    if (e.key === "Escape" && replyToMessage) {
+      setReplyToMessage(null);
+    }
   }
+
+  async function editMessage(id: string, newContent: string) {
+    const content = newContent.trim();
+    if (!content) return;
+    try {
+      const res = await fetch(`/api/messages/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content })
+      });
+      if (!res.ok) throw new Error("Edit failed");
+      const updated = (await res.json()) as Msg;
+      setMessages((prev) => mergeById([...prev.filter((m) => m.id !== id), updated]));
+      toast.success("Message edited.");
+    } catch {
+      toast.error("Failed to edit message.");
+    }
+    setEditingMessageId(null);
+    setEditText("");
+  }
+
+  function startEdit(msg: Msg) {
+    if (msg.type !== "TEXT") return;
+    setEditingMessageId(msg.id);
+    setEditText(msg.content);
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  }
+
+  function highlightText(text: string, needle: string): ReactNode {
+    if (!needle) return text;
+    const regex = new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <mark key={i} className="tg-search-highlight">{part}</mark>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  }
+
+  const commandPaletteItems = useMemo(() => [
+    { id: "new-chat", label: "New Chat", icon: "+", group: "Actions", action: () => setShowNewChatModal(true) },
+    { id: "settings", label: "Settings", icon: "\u2699", shortcut: "Ctrl+,", group: "Actions", action: () => setShowSettings(true) },
+    { id: "search", label: "Search Messages", icon: "\uD83D\uDD0D", shortcut: "/", group: "Actions", action: () => searchInputRef.current?.focus() },
+    { id: "select-mode", label: "Select Messages", icon: "\u2611", group: "Actions", action: () => setSelectMode(true) },
+    { id: "lock", label: appLock.hasPin ? "Lock App" : "Set PIN Lock", icon: "\uD83D\uDD12", group: "Settings", action: () => { if (appLock.hasPin) appLock.lock(); else setShowSetPinModal(true); } },
+    ...chats.map((c) => ({ id: `chat-${c.id}`, label: c.name, icon: c.avatar || "\uD83D\uDCBE", group: "Chats", action: () => { setActiveChatId(c.id); setDesktopHomeView(false); setMobileView("chat"); } }))
+  ], [chats, activeChatId, appLock.hasPin]);
+
+  useKeyboardShortcuts(useMemo(() => [
+    { key: "k", ctrl: true, handler: () => setShowCommandPalette(true) },
+    { key: "/", handler: () => searchInputRef.current?.focus() },
+    { key: ",", ctrl: true, handler: () => setShowSettings(true) },
+    { key: "Escape", handler: () => { if (showCommandPalette) setShowCommandPalette(false); } }
+  ], [showCommandPalette]));
 
   // ── Chat actions ──
 
@@ -869,7 +970,12 @@ export default function ChatApp() {
     return allMessages.filter((m) => m.chatId === chatId).length;
   }
 
+  if (appLock.isLocked) {
+    return <LockScreen onUnlock={appLock.unlock} />;
+  }
+
   return (
+    <ErrorBoundary>
     <main
       className={`tg-shell ${dragging ? "tg-shell-dragging" : ""} ${!isMobileViewport && desktopHomeView ? "tg-shell-desktop-home" : ""}`}
       onDragOver={(e) => {
@@ -882,26 +988,62 @@ export default function ChatApp() {
         setDragging(false);
         uploadFiles(e.dataTransfer.files);
       }}
+      role="application"
+      aria-label="Local Saved Messages"
     >
+      {/* Skip to main content */}
+      <a href="#main-chat" className="tg-skip-link">Skip to main content</a>
+
+      {/* Drag & drop overlay */}
+      {dragging && (
+        <div className="tg-drop-overlay" aria-hidden="true">
+          <div className="tg-drop-overlay-content">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <strong>Drop files here</strong>
+            <span>Files will be uploaded to the current chat</span>
+          </div>
+        </div>
+      )}
       {/* ── Left sidebar: Chat list ── */}
       <aside
         className={[
           "tg-left-rail",
           isMounted ? (isMobileViewport ? (mobileView === "list" ? "tg-mobile-show" : "tg-mobile-hide") : "") : ""
         ].filter(Boolean).join(" ")}
+        role="navigation"
+        aria-label="Chat list"
       >
         <div className="tg-left-toolbar">
-          <button className="tg-ghost-button" aria-label="Settings" onClick={() => setShowSettings(true)}>
+          <button className="tg-ghost-button" aria-label="Open settings" onClick={() => setShowSettings(true)}>
             <Icon name="menu" />
           </button>
-          <label className="tg-search">
+          <label className="tg-search" id="search-bar">
             <Icon name="search" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" />
+            <input
+              ref={searchInputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search (press /)"
+              aria-label="Search messages"
+            />
+            {query && (
+              <button
+                className="tg-search-clear"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+              >
+                <Icon name="close" />
+              </button>
+            )}
           </label>
         </div>
 
-        <div className="tg-chat-list">
-          {chats.map((chat) => {
+        <div className="tg-chat-list" role="listbox" aria-label="Chats">
+          {initialLoading ? <ChatListSkeleton /> : chats.map((chat) => {
             const lastMsg = getChatLastMessage(chat.id);
             const count = getChatMessageCount(chat.id);
             const isActive = chat.id === activeChatId;
@@ -909,7 +1051,9 @@ export default function ChatApp() {
             return (
               <button
                 key={chat.id}
-                className={`tg-chat-card ${isActive ? "tg-chat-card-active" : ""}`}
+                className={`tg-chat-card tg-chat-card-anim ${isActive ? "tg-chat-card-active" : ""}`}
+                role="option"
+                aria-selected={isActive}
                 onClick={() => {
                   setActiveChatId(chat.id);
                   setDesktopHomeView(false);
@@ -949,6 +1093,7 @@ export default function ChatApp() {
           <button
             className="tg-chat-card tg-chat-card-new"
             onClick={() => setShowNewChatModal(true)}
+            aria-label="Create new chat"
           >
             <span className="tg-avatar tg-avatar-large tg-avatar-new">
               <Icon name="plus" />
@@ -998,12 +1143,15 @@ export default function ChatApp() {
 
       {/* ── Center: Chat area ── */}
       <section
+        id="main-chat"
         className={[
           "tg-center",
           !isMobileViewport && desktopHomeView
             ? "tg-desktop-hide"
             : (isMounted ? (isMobileViewport ? (mobileView === "chat" ? "tg-mobile-show" : "tg-mobile-hide") : "") : "")
         ].filter(Boolean).join(" ")}
+        role="main"
+        aria-label="Chat messages"
       >
         {selectMode ? (
           <header className="tg-center-header tg-select-header">
@@ -1103,13 +1251,20 @@ export default function ChatApp() {
 
         <div className="tg-history" ref={historyRef}>
 
-          {filteredMessages.length === 0 && (
-            <div className="tg-empty">
-              <div className="tg-empty-icon">
+          {initialLoading ? <MessageListSkeleton /> : filteredMessages.length === 0 && (
+            <div className="tg-empty tg-empty-enhanced" role="status">
+              <div className="tg-empty-icon tg-empty-icon-animated">
                 <Icon name="saved" />
               </div>
               <strong>{activeChat?.name || "Saved Messages"}</strong>
               <span>Text, links, images, music, videos and files stay synced on every device.</span>
+              {query ? (
+                <button className="tg-btn-secondary" onClick={() => setQuery("")}>Clear search</button>
+              ) : (
+                <div className="tg-empty-tips">
+                  <p>Tip: Press <kbd>/</kbd> to search, <kbd>Ctrl+K</kbd> for commands</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1117,11 +1272,12 @@ export default function ChatApp() {
             const previous = filteredMessages[index - 1];
             const showDate = !previous || formatDay(previous.createdAt) !== formatDay(message.createdAt);
             const isSelected = selectedIds.has(message.id);
+            const searchNeedle = query.trim().toLowerCase();
 
             return (
-              <div key={message.id} data-message-id={message.id}>
+              <div key={message.id} data-message-id={message.id} className="tg-message-anim" style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}>
                 {showDate && <div className="tg-date-pill">{formatDay(message.createdAt)}</div>}
-                <article className={`tg-message-row ${isSelected ? "tg-message-selected" : ""}`}>
+                <article className={`tg-message-row ${isSelected ? "tg-message-selected" : ""}`} role="article" aria-label={`Message from ${formatTime(message.createdAt)}`}>
                   {selectMode && (
                     <button
                       className={`tg-check-circle ${isSelected ? "tg-check-checked" : ""}`}
@@ -1151,8 +1307,33 @@ export default function ChatApp() {
                       </div>
                     )}
 
-                    {message.type === "TEXT" ? (
-                      <p className="tg-message-text">{linkify(message.content)}</p>
+                    {editingMessageId === message.id ? (
+                      <div className="tg-edit-inline">
+                        <textarea
+                          className="tg-edit-textarea"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              editMessage(message.id, editText);
+                            }
+                            if (e.key === "Escape") {
+                              setEditingMessageId(null);
+                              setEditText("");
+                            }
+                          }}
+                          autoFocus
+                          rows={2}
+                          aria-label="Edit message"
+                        />
+                        <div className="tg-edit-actions">
+                          <button className="tg-btn-secondary" onClick={() => { setEditingMessageId(null); setEditText(""); }}>Cancel</button>
+                          <button className="tg-btn-primary" onClick={() => editMessage(message.id, editText)}>Save</button>
+                        </div>
+                      </div>
+                    ) : message.type === "TEXT" ? (
+                      <p className="tg-message-text">{searchNeedle ? highlightText(message.content, searchNeedle) : linkify(message.content)}</p>
                     ) : (
                       <div className="tg-file-message">
                         <div className="tg-file-heading">
@@ -1229,6 +1410,33 @@ export default function ChatApp() {
                   <span>Download</span>
                 </a>
               )}
+              {contextMessage?.type === "TEXT" && (
+                <button
+                  className="tg-context-item"
+                  onClick={() => {
+                    if (contextMessage) startEdit(contextMessage);
+                  }}
+                >
+                  <Icon name="edit" />
+                  <span>Edit</span>
+                  <kbd className="tg-context-kbd">E</kbd>
+                </button>
+              )}
+              <button
+                className="tg-context-item"
+                onClick={() => {
+                  if (contextMenu.messageId) {
+                    const msg = messages.find((m) => m.id === contextMenu.messageId);
+                    if (msg) {
+                      setReplyToMessage(msg);
+                    }
+                  }
+                  setContextMenu((prev) => ({ ...prev, visible: false }));
+                }}
+              >
+                <Icon name="reply" />
+                <span>Reply</span>
+              </button>
               <button
                 className="tg-context-item"
                 onClick={() => {
@@ -1253,11 +1461,31 @@ export default function ChatApp() {
           )}
         </div>
 
-        <form className="tg-composer" onSubmit={sendText}>
-          <button type="button" className="tg-ghost-button tg-compose-icon" title="Attach file" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-            <Icon name="attach" />
+        {/* Reply indicator */}
+        {replyToMessage && (
+          <div className="tg-reply-bar">
+            <div className="tg-reply-bar-content">
+              <Icon name="reply" />
+              <span>{replyToMessage.type === "TEXT" ? replyToMessage.content.slice(0, 60) : (replyToMessage.fileName || "File")}</span>
+            </div>
+            <button className="tg-ghost-button" onClick={() => setReplyToMessage(null)} aria-label="Cancel reply">
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
+
+        {/* Upload progress */}
+        {uploadProgress !== null && (
+          <div className="tg-upload-progress" role="progressbar" aria-valuenow={uploadProgress} aria-valuemin={0} aria-valuemax={100}>
+            <div className="tg-upload-progress-bar" style={{ width: `${uploadProgress}%` }} />
+          </div>
+        )}
+
+        <form className="tg-composer" onSubmit={sendText} role="form" aria-label="Message composer">
+          <button type="button" className="tg-ghost-button tg-compose-icon" title="Attach file" onClick={() => fileInputRef.current?.click()} disabled={uploading} aria-label="Attach file">
+            {uploading ? <LoadingSpinner size={20} /> : <Icon name="attach" />}
           </button>
-          <input ref={fileInputRef} type="file" multiple hidden onChange={onFileChange} />
+          <input ref={fileInputRef} type="file" multiple hidden onChange={onFileChange} aria-label="File input" />
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -1265,9 +1493,10 @@ export default function ChatApp() {
             onPaste={onPaste}
             placeholder={uploading ? "Uploading..." : "Write a message..."}
             rows={1}
+            aria-label="Message input"
           />
-          <button className="tg-send-button" disabled={sending || !text.trim()} title="Send">
-            <Icon name="send" />
+          <button className="tg-send-button" disabled={sending || !text.trim()} title="Send" aria-label="Send message">
+            {sending ? <LoadingSpinner size={20} /> : <Icon name="send" />}
           </button>
         </form>
       </section>
@@ -1430,7 +1659,67 @@ export default function ChatApp() {
       )}
 
       {/* ── Settings Modal ── */}
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        onOpenSetPin={() => { setShowSettings(false); setShowSetPinModal(true); }}
+        hasPin={appLock.hasPin}
+        onLock={() => { setShowSettings(false); appLock.lock(); }}
+      />
+
+      {/* ── Command Palette ── */}
+      <CommandPalette
+        open={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        items={commandPaletteItems}
+      />
+
+      {/* ── Set PIN Modal ── */}
+      <SetPinModal
+        open={showSetPinModal}
+        onClose={() => setShowSetPinModal(false)}
+        onSetPin={appLock.setPin}
+        hasExistingPin={appLock.hasPin}
+        onRemovePin={appLock.removePin}
+      />
+
+      {/* ── Mobile Bottom Nav ── */}
+      {isMobileViewport && mobileView === "list" && (
+        <nav className="tg-mobile-bottom-nav" role="navigation" aria-label="Mobile navigation">
+          <button
+            className={`tg-bottom-nav-btn ${mobileNavTab === "chats" ? "tg-bottom-nav-active" : ""}`}
+            onClick={() => setMobileNavTab("chats")}
+            aria-label="Chats"
+          >
+            <Icon name="menu" />
+            <span>Chats</span>
+          </button>
+          <button
+            className={`tg-bottom-nav-btn ${mobileNavTab === "search" ? "tg-bottom-nav-active" : ""}`}
+            onClick={() => { setMobileNavTab("search"); searchInputRef.current?.focus(); }}
+            aria-label="Search"
+          >
+            <Icon name="search" />
+            <span>Search</span>
+          </button>
+          <button
+            className={`tg-bottom-nav-btn ${mobileNavTab === "saved" ? "tg-bottom-nav-active" : ""}`}
+            onClick={() => setMobileNavTab("saved")}
+            aria-label="Saved"
+          >
+            <Icon name="save" />
+            <span>Saved</span>
+          </button>
+          <button
+            className={`tg-bottom-nav-btn ${mobileNavTab === "settings" ? "tg-bottom-nav-active" : ""}`}
+            onClick={() => { setMobileNavTab("settings"); setShowSettings(true); }}
+            aria-label="Settings"
+          >
+            <Icon name="dots" />
+            <span>Settings</span>
+          </button>
+        </nav>
+      )}
 
       {/* ── Edit Chat Modal ── */}
       {editingChatId && (
@@ -1501,5 +1790,6 @@ export default function ChatApp() {
         </div>
       )}
     </main>
+    </ErrorBoundary>
   );
 }

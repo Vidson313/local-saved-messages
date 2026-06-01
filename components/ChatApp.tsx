@@ -484,7 +484,7 @@ export default function ChatApp() {
       if (data.type === "chat-deleted") {
         setChats((prev) => prev.filter((c) => c.id !== data.chatId));
         setMessages((prev) => prev.filter((m) => m.chatId !== data.chatId));
-        setActiveChatId((current) => current === data.chatId ? "default" : current);
+        setActiveChatId((current) => { if (current === data.chatId) { setFilterTag(null); return "default"; } return current; });
       }
     };
 
@@ -830,7 +830,7 @@ export default function ChatApp() {
     { id: "search", label: "Search Messages", icon: "\uD83D\uDD0D", shortcut: "/", group: "Actions", action: () => searchInputRef.current?.focus() },
     { id: "select-mode", label: "Select Messages", icon: "\u2611", group: "Actions", action: () => setSelectMode(true) },
     { id: "lock", label: appLock.hasPin ? "Lock App" : "Set PIN Lock", icon: "\uD83D\uDD12", group: "Settings", action: () => { if (appLock.hasPin) appLock.lock(); else setShowSetPinModal(true); } },
-    ...chats.map((c) => ({ id: `chat-${c.id}`, label: c.name, icon: c.avatar || "\uD83D\uDCBE", group: "Chats", action: () => { setActiveChatId(c.id); setDesktopHomeView(false); setMobileView("chat"); } }))
+    ...chats.map((c) => ({ id: `chat-${c.id}`, label: c.name, icon: c.avatar || "\uD83D\uDCBE", group: "Chats", action: () => { setActiveChatId(c.id); setFilterTag(null); setDesktopHomeView(false); setMobileView("chat"); } }))
   ], [chats, activeChatId, appLock.hasPin]);
 
   useKeyboardShortcuts(useMemo(() => [
@@ -855,6 +855,7 @@ export default function ChatApp() {
       const chat = (await res.json()) as Chat;
       setChats((prev) => [...prev, chat]);
       setActiveChatId(chat.id);
+      setFilterTag(null);
       setDesktopHomeView(false);
       setMobileView("chat");
       setShowNewChatModal(false);
@@ -892,7 +893,7 @@ export default function ChatApp() {
       if (!res.ok) throw new Error("Delete failed");
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       setMessages((prev) => prev.filter((m) => m.chatId !== chatId));
-      if (activeChatId === chatId) setActiveChatId("default");
+      if (activeChatId === chatId) { setActiveChatId("default"); setFilterTag(null); }
     } catch {
       toast.error("Failed to delete chat.");
     }
@@ -1120,6 +1121,7 @@ export default function ChatApp() {
                 aria-selected={isActive}
                 onClick={() => {
                   setActiveChatId(chat.id);
+                  setFilterTag(null);
                   setDesktopHomeView(false);
                   setMobileView("chat");
                   setQuery("");

@@ -2,6 +2,7 @@
 
 @source "../app";
 @source "../components";
+@source "../hooks";
 
 :root {
   --tg-page: #f4ede9;
@@ -21,6 +22,61 @@
   --tg-bubble: #ffffff;
   --tg-bubble-self: #e3f2ff;
   --tg-shadow: 0 10px 35px rgba(40, 28, 34, 0.12);
+  --tg-font-size: 15px;
+  --tg-context-bg: #ffffff;
+  --tg-modal-bg: #ffffff;
+  --tg-body-bg-1: #ff5d79;
+  --tg-body-bg-2: #a33cb0;
+  --tg-body-bg-3: #f06b8d;
+  --tg-composer-bg: rgba(255, 255, 255, 0.72);
+  --tg-header-bg: rgba(255, 255, 255, 0.7);
+  --tg-right-bg: rgba(255, 255, 255, 0.78);
+  --tg-right-stat-bg: rgba(255, 255, 255, 0.74);
+  --tg-search-bg: rgba(255, 255, 255, 0.5);
+  --tg-ghost-hover: rgba(0, 0, 0, 0.05);
+  --tg-file-bubble: #dcf0ff;
+  --tg-date-pill-bg: rgba(255, 255, 255, 0.75);
+  --tg-date-pill-text: #706e75;
+  --tg-drop-bg: rgba(255, 255, 255, 0.7);
+  --tg-drop-border: rgba(51, 144, 236, 0.55);
+  --tg-drop-text: #0f65b8;
+}
+
+[data-theme="dark"] {
+  --tg-page: #1a1a2e;
+  --tg-left: #16213e;
+  --tg-left-rail: #0f3460;
+  --tg-left-active: #3390ec;
+  --tg-left-active-soft: rgba(51, 144, 236, 0.18);
+  --tg-center: #1a1a2e;
+  --tg-chat-bg: #0d1117;
+  --tg-grid: rgba(255, 255, 255, 0.03);
+  --tg-white: #1e1e30;
+  --tg-border: rgba(255, 255, 255, 0.08);
+  --tg-text: #e4e6eb;
+  --tg-muted: #8b949e;
+  --tg-blue: #58a6ff;
+  --tg-green: #56d364;
+  --tg-bubble: #21262d;
+  --tg-bubble-self: #1c2d4a;
+  --tg-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+  --tg-context-bg: #21262d;
+  --tg-modal-bg: #1e1e30;
+  --tg-body-bg-1: #1a1a2e;
+  --tg-body-bg-2: #16213e;
+  --tg-body-bg-3: #0f3460;
+  --tg-composer-bg: rgba(30, 30, 48, 0.85);
+  --tg-header-bg: rgba(26, 26, 46, 0.85);
+  --tg-right-bg: rgba(30, 30, 48, 0.85);
+  --tg-right-stat-bg: rgba(33, 38, 45, 0.74);
+  --tg-search-bg: rgba(255, 255, 255, 0.08);
+  --tg-ghost-hover: rgba(255, 255, 255, 0.08);
+  --tg-file-bubble: #1c2d4a;
+  --tg-date-pill-bg: rgba(30, 30, 48, 0.8);
+  --tg-date-pill-text: #8b949e;
+  --tg-drop-bg: rgba(30, 30, 48, 0.85);
+  --tg-drop-border: rgba(88, 166, 255, 0.4);
+  --tg-drop-text: #58a6ff;
 }
 
 * {
@@ -35,10 +91,11 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, #ff5d79 0, #ff5d79 120px, transparent 121px),
-    linear-gradient(135deg, #a33cb0 0%, #f06b8d 100%);
+    radial-gradient(circle at top left, var(--tg-body-bg-1) 0, var(--tg-body-bg-1) 120px, transparent 121px),
+    linear-gradient(135deg, var(--tg-body-bg-2) 0%, var(--tg-body-bg-3) 100%);
   color: var(--tg-text);
-  font-family: "Segoe UI", Tahoma, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 button,
@@ -82,10 +139,10 @@ button {
   display: grid;
   place-items: center;
   z-index: 20;
-  border: 2px dashed rgba(51, 144, 236, 0.55);
+  border: 2px dashed var(--tg-drop-border);
   border-radius: 16px;
-  color: #0f65b8;
-  background: rgba(255, 255, 255, 0.7);
+  color: var(--tg-drop-text);
+  background: var(--tg-drop-bg);
   backdrop-filter: blur(8px);
   font-size: 18px;
   font-weight: 600;
@@ -105,6 +162,11 @@ button {
     linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 160px),
     linear-gradient(180deg, var(--tg-left), var(--tg-left-rail));
   border-right: 1px solid var(--tg-border);
+  transition: background 0.3s ease;
+}
+
+[data-theme="dark"] .tg-left-rail {
+  background: linear-gradient(180deg, var(--tg-left), var(--tg-left-rail));
 }
 
 .tg-left-toolbar,
@@ -143,7 +205,7 @@ button {
 }
 
 .tg-ghost-button:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--tg-ghost-hover);
   color: var(--tg-text);
 }
 
@@ -155,8 +217,8 @@ button {
   gap: 8px;
   padding: 0 12px;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.5);
-  color: #8f8d97;
+  background: var(--tg-search-bg);
+  color: var(--tg-muted);
 }
 
 .tg-search input {
@@ -284,8 +346,9 @@ button {
 
 .tg-center-header {
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--tg-header-bg);
   backdrop-filter: blur(12px);
+  transition: background 0.3s ease;
 }
 
 .tg-title-block {
@@ -326,8 +389,8 @@ button {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
-  color: #706e75;
-  background: rgba(255, 255, 255, 0.75);
+  color: var(--tg-date-pill-text);
+  background: var(--tg-date-pill-bg);
   backdrop-filter: blur(8px);
 }
 
@@ -347,15 +410,16 @@ button {
 }
 
 .tg-bubble-file {
-  background: #dcf0ff;
+  background: var(--tg-file-bubble);
 }
 
 .tg-message-text {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: var(--tg-font-size);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 .tg-link,
@@ -422,7 +486,7 @@ button {
   gap: 12px;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--tg-date-pill-bg);
 }
 
 .tg-document-icon,
@@ -499,9 +563,10 @@ button {
   align-items: center;
   gap: 10px;
   padding: 12px 16px 16px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--tg-composer-bg);
   border-top: 1px solid var(--tg-border);
   backdrop-filter: blur(12px);
+  transition: background 0.3s ease;
 }
 
 .tg-compose-icon {
@@ -542,9 +607,10 @@ button {
 .tg-right-panel {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--tg-right-bg);
   border-left: 1px solid var(--tg-border);
   backdrop-filter: blur(12px);
+  transition: background 0.3s ease;
 }
 
 .tg-right-profile {
@@ -575,7 +641,7 @@ button {
   padding: 10px 8px;
   border-radius: 14px;
   text-align: center;
-  background: rgba(255, 255, 255, 0.74);
+  background: var(--tg-right-stat-bg);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
@@ -600,7 +666,7 @@ button {
   height: 36px;
   border-radius: 10px;
   color: var(--tg-muted);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--tg-search-bg);
 }
 
 .tg-tabbar button.is-active {
@@ -649,11 +715,11 @@ button {
   padding: 10px;
   text-decoration: none;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--tg-search-bg);
 }
 
 .tg-side-row:hover {
-  background: rgba(233, 244, 255, 0.92);
+  background: var(--tg-left-active-soft);
 }
 
 .tg-empty {
@@ -664,7 +730,7 @@ button {
   justify-items: center;
   gap: 8px;
   text-align: center;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--tg-date-pill-bg);
   border-radius: 22px;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
@@ -769,7 +835,7 @@ button {
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--tg-header-bg);
   border-bottom: 1px solid var(--tg-border);
   cursor: pointer;
   flex: 0 0 auto;
@@ -777,7 +843,7 @@ button {
 }
 
 .tg-pinned-bar:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--tg-ghost-hover);
 }
 
 .tg-pinned-icon {
@@ -874,7 +940,7 @@ button {
   min-width: 180px;
   padding: 6px 0;
   border-radius: 14px;
-  background: white;
+  background: var(--tg-context-bg);
   box-shadow:
     0 4px 22px rgba(0, 0, 0, 0.14),
     0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -1010,7 +1076,7 @@ button {
 
 .tg-modal {
   width: min(420px, 92vw);
-  background: white;
+  background: var(--tg-modal-bg);
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   overflow: hidden;
@@ -1061,9 +1127,11 @@ button {
   height: 44px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--tg-border);
   font-size: 15px;
   outline: none;
+  background: var(--tg-white);
+  color: var(--tg-text);
   transition: border-color 0.15s ease;
 }
 
@@ -1162,11 +1230,11 @@ button {
   font-weight: 500;
   cursor: pointer;
   color: var(--tg-text);
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--tg-ghost-hover);
 }
 
 .tg-btn-secondary:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--tg-search-bg);
 }
 
 @media (max-width: 1180px) {
@@ -1288,4 +1356,215 @@ button {
   .tg-composer {
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
+}
+
+/* ── Theme toggle ── */
+.tg-theme-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--tg-ghost-hover);
+}
+
+.tg-theme-toggle-btn {
+  width: 32px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--tg-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tg-theme-toggle-btn:hover {
+  color: var(--tg-text);
+}
+
+.tg-theme-toggle-active {
+  background: var(--tg-blue);
+  color: white !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Settings modal ── */
+.tg-settings-modal {
+  width: min(460px, 92vw);
+}
+
+.tg-settings-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--tg-text);
+}
+
+.tg-settings-body {
+  padding: 0 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tg-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--tg-ghost-hover);
+}
+
+.tg-settings-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tg-text);
+}
+
+.tg-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tg-settings-label {
+  font-size: 14px;
+  color: var(--tg-text);
+}
+
+.tg-settings-hint {
+  font-size: 12px;
+  color: var(--tg-muted);
+}
+
+.tg-font-size-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.tg-font-size-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--tg-search-bg);
+  color: var(--tg-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tg-font-size-btn:hover {
+  border-color: var(--tg-muted);
+}
+
+.tg-font-size-btn small {
+  font-size: 11px;
+  color: var(--tg-muted);
+}
+
+.tg-font-size-active {
+  border-color: var(--tg-blue) !important;
+  background: var(--tg-left-active-soft);
+}
+
+.tg-settings-about {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.tg-settings-about strong {
+  font-size: 15px;
+}
+
+.tg-settings-about small {
+  font-size: 12px;
+  color: var(--tg-muted);
+}
+
+/* ── Smooth transitions for theme switching ── */
+.tg-shell,
+.tg-left-rail,
+.tg-center,
+.tg-right-panel,
+.tg-bubble,
+.tg-context-menu,
+.tg-modal,
+.tg-chat-card,
+.tg-search,
+.tg-tabbar button,
+.tg-side-row {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ── Dark mode specific overrides ── */
+[data-theme="dark"] .tg-chat-card-meta em {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .tg-actions button:hover,
+[data-theme="dark"] .tg-actions a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .tg-context-item:hover {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+[data-theme="dark"] .tg-context-danger:hover {
+  background: rgba(211, 47, 47, 0.15);
+}
+
+[data-theme="dark"] .tg-ghost-button {
+  color: var(--tg-muted);
+}
+
+[data-theme="dark"] .tg-compose-icon {
+  color: var(--tg-muted);
+}
+
+[data-theme="dark"] .tg-search input::placeholder,
+[data-theme="dark"] .tg-composer textarea::placeholder {
+  color: var(--tg-muted);
+}
+
+[data-theme="dark"] .tg-avatar-new {
+  background: linear-gradient(180deg, rgba(88, 166, 255, 0.15), rgba(88, 166, 255, 0.08)) !important;
+  color: var(--tg-blue) !important;
+}
+
+[data-theme="dark"] .tg-emoji-btn:hover {
+  background: rgba(88, 166, 255, 0.12);
+}
+
+[data-theme="dark"] .tg-emoji-active {
+  border-color: var(--tg-blue);
+  background: rgba(88, 166, 255, 0.15);
+}
+
+[data-theme="dark"] .tg-select-header .tg-ghost-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .tg-message-selected .tg-bubble {
+  background: rgba(88, 166, 255, 0.15);
+  box-shadow: inset 0 0 0 2px var(--tg-blue);
+}
+
+[data-theme="dark"] .tg-error {
+  background: rgba(255, 105, 97, 0.15);
+  color: #ff6b6b;
 }

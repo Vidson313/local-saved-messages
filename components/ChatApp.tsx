@@ -12,6 +12,8 @@ import {
   useState
 } from "react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
+import { SettingsModal, useAppFontSize } from "@/components/ui/SettingsModal";
 
 type Chat = {
   id: string;
@@ -347,7 +349,7 @@ export default function ChatApp() {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [error, setError] = useState("");
+
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -374,6 +376,9 @@ export default function ChatApp() {
   const [editChatName, setEditChatName] = useState("");
   const [editChatAvatar, setEditChatAvatar] = useState("");
   const [editChatAvatarType, setEditChatAvatarType] = useState<"emoji" | "image">("emoji");
+  const [showSettings, setShowSettings] = useState(false);
+
+  useAppFontSize();
 
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -392,7 +397,7 @@ export default function ChatApp() {
       const next = (await res.json()) as Msg[];
       setMessages(mergeById(next));
     } catch {
-      setError("Messages could not be refreshed.");
+      toast.error("Messages could not be refreshed.");
     }
   }
 
@@ -403,7 +408,7 @@ export default function ChatApp() {
       const data = (await res.json()) as Chat[];
       setChats(data);
     } catch {
-      setError("Chats could not be refreshed.");
+      toast.error("Chats could not be refreshed.");
     }
   }
 
@@ -526,7 +531,6 @@ export default function ChatApp() {
     if (!content || sending) return;
 
     setSending(true);
-    setError("");
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
@@ -541,7 +545,7 @@ export default function ChatApp() {
         endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       });
     } catch {
-      setError("Message was not sent.");
+      toast.error("Message was not sent.");
     } finally {
       setSending(false);
       syncMessages();
@@ -553,7 +557,6 @@ export default function ChatApp() {
     if (!items.length || uploading) return;
 
     setUploading(true);
-    setError("");
     try {
       for (const file of items) {
         const fd = new FormData();
@@ -569,7 +572,7 @@ export default function ChatApp() {
         endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       });
     } catch {
-      setError("File upload failed.");
+      toast.error("File upload failed.");
     } finally {
       setUploading(false);
       syncMessages();
@@ -597,7 +600,7 @@ export default function ChatApp() {
       if (!res.ok) throw new Error("Delete failed");
     } catch {
       setMessages(previous);
-      setError("Delete failed.");
+      toast.error("Delete failed.");
     } finally {
       syncMessages();
     }
@@ -615,7 +618,7 @@ export default function ChatApp() {
       if (!res.ok) throw new Error("Delete failed");
     } catch {
       setMessages(previous);
-      setError("Delete failed.");
+      toast.error("Delete failed.");
     } finally {
       syncMessages();
     }
@@ -635,7 +638,7 @@ export default function ChatApp() {
       const updated = (await res.json()) as Msg;
       setMessages((prev) => mergeById([...prev.filter((m) => m.id !== id), updated]));
     } catch {
-      setError("Failed to update pin.");
+      toast.error("Failed to update pin.");
     }
   }
 
@@ -653,7 +656,7 @@ export default function ChatApp() {
       const updated = (await res.json()) as Msg;
       setMessages((prev) => mergeById([...prev.filter((m) => m.id !== id), updated]));
     } catch {
-      setError("Failed to update save.");
+      toast.error("Failed to update save.");
     }
   }
 
@@ -661,7 +664,7 @@ export default function ChatApp() {
     try {
       await navigator.clipboard.writeText(value);
     } catch {
-      setError("Copy is blocked by the browser on this address.");
+      toast.error("Copy is blocked by the browser on this address.");
     }
   }
 
@@ -694,7 +697,7 @@ export default function ChatApp() {
       setNewChatAvatar("💾");
       setNewChatAvatarType("emoji");
     } catch {
-      setError("Failed to create chat.");
+      toast.error("Failed to create chat.");
     }
   }
 
@@ -713,7 +716,7 @@ export default function ChatApp() {
       setChats((prev) => prev.map((c) => c.id === chat.id ? chat : c));
       setEditingChatId(null);
     } catch {
-      setError("Failed to update chat.");
+      toast.error("Failed to update chat.");
     }
   }
 
@@ -726,7 +729,7 @@ export default function ChatApp() {
       setMessages((prev) => prev.filter((m) => m.chatId !== chatId));
       if (activeChatId === chatId) setActiveChatId("default");
     } catch {
-      setError("Failed to delete chat.");
+      toast.error("Failed to delete chat.");
     }
   }
 
@@ -745,7 +748,7 @@ export default function ChatApp() {
         setEditChatAvatarType("image");
       }
     } catch {
-      setError("Failed to upload avatar.");
+      toast.error("Failed to upload avatar.");
     }
   }
 
@@ -888,7 +891,7 @@ export default function ChatApp() {
         ].filter(Boolean).join(" ")}
       >
         <div className="tg-left-toolbar">
-          <button className="tg-ghost-button" aria-label="Menu">
+          <button className="tg-ghost-button" aria-label="Settings" onClick={() => setShowSettings(true)}>
             <Icon name="menu" />
           </button>
           <label className="tg-search">
@@ -1072,7 +1075,7 @@ export default function ChatApp() {
               >
                 <Icon name="select" />
               </button>
-              <button className="tg-ghost-button" title="More">
+              <button className="tg-ghost-button" title="Settings" onClick={() => setShowSettings(true)}>
                 <Icon name="dots" />
               </button>
             </div>
@@ -1099,11 +1102,6 @@ export default function ChatApp() {
         )}
 
         <div className="tg-history" ref={historyRef}>
-          {error && (
-            <button className="tg-error" onClick={() => setError("")}>
-              {error}
-            </button>
-          )}
 
           {filteredMessages.length === 0 && (
             <div className="tg-empty">
@@ -1430,6 +1428,9 @@ export default function ChatApp() {
           </div>
         </div>
       )}
+
+      {/* ── Settings Modal ── */}
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* ── Edit Chat Modal ── */}
       {editingChatId && (

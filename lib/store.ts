@@ -1,105 +1,89 @@
 import { randomUUID } from "crypto";
-import { promises as fs } from "fs";
 import path from "path";
+import { readJsonSafe, writeJsonAtomic } from "./storage/atomic.ts";
+import type {
+  Chat,
+  CreateChatInput,
+  CreateFileInput,
+  Message,
+  PaginatedMessages,
+  PaginationOptions,
+  UpdateChatInput,
+  UpdateMessageInput
+} from "../types/store.ts";
 
-export type Chat = {
-  id: string;
-  name: string;
-  avatar: string | null;
-  avatarType: "emoji" | "image" | null;
-  createdAt: string;
+export type {
+  Chat,
+  Message,
+  PaginationOptions,
+  PaginatedMessages,
+  CreateChatInput,
+  UpdateChatInput,
+  CreateFileInput,
+  UpdateMessageInput
 };
 
-export type Message = {
-  id: string;
-  chatId: string;
-  type: "TEXT" | "FILE";
-  content: string;
-  fileName: string | null;
-  fileSize: number | null;
-  mimeType: string | null;
-  pinned: boolean;
-  saved: boolean;
-  tags: string[];
-  createdAt: string;
-};
-
-const dataDir = path.join(process.cwd(), "data");
+const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "messages.json");
 const chatsDbPath = path.join(dataDir, "chats.json");
 
+// صف زنجیره‌ای جهت جلوگیری از تداخل نوشتن‌های همزمان
 let writeQueue = Promise.resolve();
 
-async function ensureDir() {
-  await fs.mkdir(dataDir, { recursive: true });
-}
+// کش در حافظه جهت جلوگیری از I/O مکرر دیسک در هر درخواست
+let cachedChats: Chat[] | null = null;
+let cachedMessages: Message[] | null = null;
 
-async function ensureFile(filePath: string, defaultContent: string) {
-  try {
-    await fs.access(filePath);
-  } catch {
-    await fs.writeFile(filePath, defaultContent, "utf8");
-  }
-}
-
-async function readChats(): Promise<Chat[]> {
-  await ensureDir();
-  await ensureFile(chatsDbPath, "[]");
-  const raw = await fs.readFile(chatsDbPath, "utf8");
-  const parsed = JSON.parse(raw) as Chat[];
-  return parsed.map((c) => ({
-    ...c,
-    avatar: c.avatar ?? null,
-    avatarType: c.avatarType ?? null
-  }));
-}
-
-async function writeChats(chats: Chat[]) {
-  await ensureDir();
-  await fs.writeFile(chatsDbPath, JSON.stringify(chats, null, 2), "utf8");
-}
-
-async function readMessages(): Promise<Message[]> {
-  await ensureDir();
-  await ensureFile(dbPath, "[]");
-  const raw = await fs.readFile(dbPath, "utf8");
-  const parsed = JSON.parse(raw) as Message[];
-  return parsed.map((m) => ({
-    ...m,
-    chatId: m.chatId ?? "default",
-    pinned: m.pinned ?? false,
-    saved: m.saved ?? false,
-    tags: m.tags ?? []
-  }));
-}
-
-async function writeMessages(messages: Message[]) {
-  await ensureDir();
-  await fs.writeFile(dbPath, JSON.stringify(messages, null, 2), "utf8");
-}
-
-function withWriteLock<T>(task: () => Promise<T>) {
+function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
   const run = writeQueue.then(task, task);
-  writeQueue = run.then(() => undefined, () => undefined);
+  writeQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
   return run;
 }
 
-// ── Chat CRUD ──
+const defaultChat: Chat = {
+  id: "default",
+  name: "Saved Messages",
+  avatar: "💾",
+  avatarType: "emoji",
+  createdAt: "2026-01-01T00:00:00.000Z"
+};
 
-export async function getChats() {
-  const chats = await readChats();
-  // Ensure default chat exists
-  if (!chats.find((c) => c.id === "default")) {
-    const defaultChat: Chat = {
-      id: "default",
-      name: "Saved Messages",
-      avatar: "💾",
-      avatarType: "emoji",
-      createdAt: new Date().toISOString()
-    };
-    chats.push(defaultChat);
-    await writeChats(chats);
+async function ensureInitialized() {
+  if (cachedChats === null) {
+    const rawChats = await readJsonSafe<Chat[]>(chatsDbPath, [defaultChat]);
+    const normalizedChats = rawChats.map((c) => ({
+      ...c,
+      avatar: c.avatar ?? null,
+      avatarType: c.avatarType ?? null
+    }));
+
+    if (!normalizedChats.some((c) => c.id === "default")) {
+      normalizedChats.unshift(defaultChat);
+      await writeJsonAtomic(chatsDbPath, normalizedChats);
+    }
+    cachedChats = normalizedChats;
   }
+
+  if (cachedMessages === null) {
+    const rawMessages = await readJsonSafe<Message[]>(dbPath, []);
+    cachedMessages = rawMessages.map((m) => ({
+      ...m,
+      chatId: m.chatId ?? "default",
+      pinned: m.pinned ?? false,
+      saved: m.saved ?? false,
+      tags: m.tags ?? []
+    }));
+  }
+}
+
+// ── توابع مدیریت چت‌ها (Chat CRUD) ──
+
+export async function getChats(): Promise<Chat[]> {
+  await ensureInitialized();
+  const chats = [...(cachedChats || [])];
   return chats.sort((a, b) => {
     if (a.id === "default") return -1;
     if (b.id === "default") return 1;
@@ -107,9 +91,9 @@ export async function getChats() {
   });
 }
 
-export async function createChat(input: { name: string; avatar?: string; avatarType?: "emoji" | "image" }) {
+export async function createChat(input: CreateChatInput): Promise<Chat> {
   return withWriteLock(async () => {
-    const chats = await readChats();
+    await ensureInitialized();
     const chat: Chat = {
       id: randomUUID(),
       name: input.name,
@@ -117,49 +101,102 @@ export async function createChat(input: { name: string; avatar?: string; avatarT
       avatarType: input.avatarType ?? null,
       createdAt: new Date().toISOString()
     };
-    chats.push(chat);
-    await writeChats(chats);
+
+    cachedChats = [...(cachedChats || []), chat];
+    await writeJsonAtomic(chatsDbPath, cachedChats);
     return chat;
   });
 }
 
-export async function updateChat(id: string, updates: Partial<Pick<Chat, "name" | "avatar" | "avatarType">>) {
+export async function updateChat(id: string, updates: UpdateChatInput): Promise<Chat | null> {
   return withWriteLock(async () => {
-    const chats = await readChats();
-    const index = chats.findIndex((c) => c.id === id);
+    await ensureInitialized();
+    if (!cachedChats) return null;
+
+    const index = cachedChats.findIndex((c) => c.id === id);
     if (index === -1) return null;
-    chats[index] = { ...chats[index], ...updates };
-    await writeChats(chats);
-    return chats[index];
+
+    const updated = { ...cachedChats[index], ...updates };
+    cachedChats[index] = updated;
+    await writeJsonAtomic(chatsDbPath, cachedChats);
+    return updated;
   });
 }
 
-export async function deleteChat(id: string) {
+export async function deleteChat(id: string): Promise<Chat | null> {
   return withWriteLock(async () => {
-    if (id === "default") return null; // Cannot delete default chat
-    const chats = await readChats();
-    const chat = chats.find((c) => c.id === id);
+    if (id === "default") return null; // چت پیش‌فرض حذف نمی‌شود
+    await ensureInitialized();
+    if (!cachedChats || !cachedMessages) return null;
+
+    const chat = cachedChats.find((c) => c.id === id);
     if (!chat) return null;
-    await writeChats(chats.filter((c) => c.id !== id));
-    // Also delete all messages in this chat
-    const messages = await readMessages();
-    await writeMessages(messages.filter((m) => m.chatId !== id));
+
+    cachedChats = cachedChats.filter((c) => c.id !== id);
+    cachedMessages = cachedMessages.filter((m) => m.chatId !== id);
+
+    await Promise.all([
+      writeJsonAtomic(chatsDbPath, cachedChats),
+      writeJsonAtomic(dbPath, cachedMessages)
+    ]);
+
     return chat;
   });
 }
 
-// ── Message CRUD ──
+// ── توابع مدیریت پیام‌ها (Message CRUD) ──
 
-export async function getMessages(chatId?: string) {
-  const messages = await readMessages();
-  const sorted = messages.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+/**
+ * دریافت پیام‌ها به صورت ساده (سازگار با کدهای قبلی)
+ */
+export async function getMessages(chatId?: string): Promise<Message[]> {
+  await ensureInitialized();
+  const sorted = [...(cachedMessages || [])].sort(
+    (a, b) => +new Date(a.createdAt) - +new Date(b.createdAt)
+  );
   if (chatId) return sorted.filter((m) => m.chatId === chatId);
   return sorted;
 }
 
-export async function createTextMessage(content: string, chatId: string = "default") {
+/**
+ * دریافت پیام‌ها همراه با صفحه‌بندی مبتنی بر Cursor
+ */
+export async function getPaginatedMessages(options: PaginationOptions = {}): Promise<PaginatedMessages> {
+  await ensureInitialized();
+  const { chatId, limit = 50, before } = options;
+
+  let list = [...(cachedMessages || [])];
+  if (chatId) {
+    list = list.filter((m) => m.chatId === chatId);
+  }
+
+  // مرتب‌سازی از جدیدترین به قدیمی‌ترین برای صفحه‌بندی کارآمد
+  list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
+  if (before) {
+    const beforeDate = new Date(before).getTime();
+    list = list.filter((m) => +new Date(m.createdAt) < beforeDate);
+  }
+
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+  const pageItems = list.slice(0, safeLimit);
+  const hasMore = list.length > safeLimit;
+  const nextCursor = hasMore && pageItems.length > 0 ? pageItems[pageItems.length - 1].createdAt : null;
+
+  // بازگردانی آیتم‌های صفحه با ترتیب زمانی صعودی (مطابق رابط چت)
+  pageItems.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+
+  return {
+    messages: pageItems,
+    nextCursor,
+    total: cachedMessages?.length || 0,
+    hasMore
+  };
+}
+
+export async function createTextMessage(content: string, chatId: string = "default"): Promise<Message> {
   return withWriteLock(async () => {
-    const messages = await readMessages();
+    await ensureInitialized();
     const message: Message = {
       id: randomUUID(),
       chatId,
@@ -173,21 +210,16 @@ export async function createTextMessage(content: string, chatId: string = "defau
       tags: [],
       createdAt: new Date().toISOString()
     };
-    messages.push(message);
-    await writeMessages(messages);
+
+    cachedMessages = [...(cachedMessages || []), message];
+    await writeJsonAtomic(dbPath, cachedMessages);
     return message;
   });
 }
 
-export async function createFileMessage(input: {
-  content: string;
-  fileName: string;
-  fileSize: number;
-  mimeType: string;
-  chatId?: string;
-}) {
+export async function createFileMessage(input: CreateFileInput): Promise<Message> {
   return withWriteLock(async () => {
-    const messages = await readMessages();
+    await ensureInitialized();
     const message: Message = {
       id: randomUUID(),
       chatId: input.chatId ?? "default",
@@ -201,50 +233,61 @@ export async function createFileMessage(input: {
       tags: [],
       createdAt: new Date().toISOString()
     };
-    messages.push(message);
-    await writeMessages(messages);
+
+    cachedMessages = [...(cachedMessages || []), message];
+    await writeJsonAtomic(dbPath, cachedMessages);
     return message;
   });
 }
 
-export async function deleteMessage(id: string) {
+export async function deleteMessage(id: string): Promise<Message | null> {
   return withWriteLock(async () => {
-    const messages = await readMessages();
-    const message = messages.find((item) => item.id === id);
+    await ensureInitialized();
+    if (!cachedMessages) return null;
+
+    const message = cachedMessages.find((item) => item.id === id);
     if (!message) return null;
 
-    await writeMessages(messages.filter((item) => item.id !== id));
+    cachedMessages = cachedMessages.filter((item) => item.id !== id);
+    await writeJsonAtomic(dbPath, cachedMessages);
     return message;
   });
 }
 
-export async function updateMessage(id: string, updates: Partial<Pick<Message, "pinned" | "saved" | "tags" | "content">>) {
+export async function deleteMessages(ids: string[]): Promise<Message[]> {
   return withWriteLock(async () => {
-    const messages = await readMessages();
-    const index = messages.findIndex((item) => item.id === id);
+    await ensureInitialized();
+    if (!cachedMessages) return [];
+
+    const idSet = new Set(ids);
+    const removed = cachedMessages.filter((item) => idSet.has(item.id));
+    cachedMessages = cachedMessages.filter((item) => !idSet.has(item.id));
+
+    await writeJsonAtomic(dbPath, cachedMessages);
+    return removed;
+  });
+}
+
+export async function updateMessage(id: string, updates: UpdateMessageInput): Promise<Message | null> {
+  return withWriteLock(async () => {
+    await ensureInitialized();
+    if (!cachedMessages) return null;
+
+    const index = cachedMessages.findIndex((item) => item.id === id);
     if (index === -1) return null;
 
-    messages[index] = { ...messages[index], ...updates };
-    await writeMessages(messages);
-    return messages[index];
+    const updated = { ...cachedMessages[index], ...updates };
+    cachedMessages[index] = updated;
+    await writeJsonAtomic(dbPath, cachedMessages);
+    return updated;
   });
 }
 
 export async function getAllTags(): Promise<string[]> {
-  const messages = await readMessages();
+  await ensureInitialized();
   const tagSet = new Set<string>();
-  for (const m of messages) {
+  for (const m of cachedMessages || []) {
     for (const t of m.tags ?? []) tagSet.add(t);
   }
   return Array.from(tagSet).sort();
-}
-
-export async function deleteMessages(ids: string[]) {
-  return withWriteLock(async () => {
-    const messages = await readMessages();
-    const idSet = new Set(ids);
-    const removed = messages.filter((item) => idSet.has(item.id));
-    await writeMessages(messages.filter((item) => !idSet.has(item.id)));
-    return removed;
-  });
 }

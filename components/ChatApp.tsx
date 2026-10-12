@@ -503,7 +503,9 @@ export default function ChatApp() {
         console.error("[ChatApp] Initial data sync error:", err);
         toast.error("Failed to load initial data. Please refresh.");
       })
-      .finally(() => setInitialLoading(false));
+      .finally(() => {
+        setInitialLoading(false);
+      });
   }, [handleResync]);
 
   // ── Derived data ──

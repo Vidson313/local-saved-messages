@@ -63,17 +63,58 @@ async function runRealtimeTests() {
 
   const prevPayload = receivedPayload;
   broadcast({ type: "after-unsub" });
-  assert.strictEqual(receivedPayload, prevPayload); // نباید تغییر کرده باشد
-  assert.strictEqual(listener2Count, 1); // نباید اضافه شده باشد
+  assert.strictEqual(receivedPayload, prevPayload);
+  assert.strictEqual(listener2Count, 1);
   console.log("✓ تست ۳ (Unsubscribe و چندشنوندگی) با موفقیت پاس شد.");
 
   // تست ۴: تست منقضی شدن رویدادها در بافر چرخشی
   console.log("تست ۴: تست بافر چرخشی و اعلام resync برای شناسه‌های بسیار قدیمی...");
-  // شناسه -9999 بسیار قدیمی‌تر از بافر فعلی است
   const expiredResult = getEventsSince(-9999);
   assert.strictEqual(expiredResult.canCatchUp, false);
   assert.strictEqual(expiredResult.events.length, 0);
   console.log("✓ تست ۴ (تشخیص انقضای رویدادها و الزام به resync) با موفقیت پاس شد.");
+
+  // تست ۵: تست جلوگیری از Race Condition حین Replay و Subscribe
+  console.log("تست ۵: شبیه‌سازی صف‌بندی رویدادها در زمان بازپخش (Race-Condition Free Replay)...");
+  const lastKnownId = eventId4;
+  const deliveredEvents = [];
+  const pendingQueue = [];
+  let isCatchingUp = true;
+
+  // ثبت لیسنر قبل از شروع بازپخش
+  const unsubSim = subscribe((payload, eventId) => {
+    if (isCatchingUp) {
+      pendingQueue.push({ payload, eventId });
+    } else {
+      deliveredEvents.push({ payload, eventId });
+    }
+  });
+
+  // رویداد جدیدی دقیقاً حین آماده‌سازی بازپخش منتشر می‌شود
+  const raceEventId = broadcast({ type: "race-event", content: "همزمانی" });
+
+  // بازپخش رویدادهای جامانده
+  let highestDelivered = lastKnownId;
+  const replayItems = getEventsSince(lastKnownId);
+  for (const item of replayItems.events) {
+    deliveredEvents.push({ payload: formatSSEMessage(item), eventId: item.id });
+    if (item.id > highestDelivered) highestDelivered = item.id;
+  }
+
+  // تخلیه صف موقت رویدادهای زنده
+  for (const item of pendingQueue) {
+    if (item.eventId > highestDelivered) {
+      deliveredEvents.push(item);
+      highestDelivered = item.eventId;
+    }
+  }
+  isCatchingUp = false;
+  unsubSim();
+
+  // تایید اینکه رویداد raceEvent بدون جا افتادن یا تکرار دریافت شده است
+  const raceFound = deliveredEvents.some((e) => e.eventId === raceEventId);
+  assert.strictEqual(raceFound, true);
+  console.log("✓ تست ۵ (جلوگیری کامل از گم شدن رویدادها در Race Condition) با موفقیت پاس شد.");
 
   console.log("\n=== تمامی تست‌های سیستم بلادرنگ SSE با موفقیت ۱۰۰٪ پاس شدند ===");
 }

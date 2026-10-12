@@ -36,25 +36,46 @@ export async function GET(req: Request) {
       // ۱. ارسال رویداد آماده‌سازی اولیه
       send(`data: ${JSON.stringify({ type: "ready" })}\n\n`);
 
-      // ۲. در صورت اتصال مجدد با Last-Event-ID، بررسی و ارسال رویدادهای از دست رفته
+      // ۲. ثبت لیسنر پیش از بازپخش برای جلوگیری از Race Condition
+      // رویدادهایی که در طول بازپخش منتشر شوند در صف موقت قرار می‌گیرند
+      const pendingQueue: { payload: string; eventId: number }[] = [];
+      let isCatchingUp = true;
+
+      unsubscribe = subscribe((payload, eventId) => {
+        if (isCatchingUp) {
+          pendingQueue.push({ payload, eventId });
+        } else {
+          send(payload);
+        }
+      });
+
+      // ۳. در صورت ارسال Last-Event-ID، بازپخش رویدادهای از دست رفته
+      let highestDeliveredId = lastEventId ?? 0;
       if (lastEventId !== null && lastEventId > 0) {
         const { events, canCatchUp } = getEventsSince(lastEventId);
         if (canCatchUp) {
           for (const ev of events) {
             send(formatSSEMessage(ev));
+            if (ev.id > highestDeliveredId) {
+              highestDeliveredId = ev.id;
+            }
           }
         } else {
-          // در صورت فاصله زیاد، به کلاینت اطلاع می‌دهیم یکبار کل وضعیت را بازخوانی کند
+          // در صورت انقضای بافر، اطلاع به کلاینت جهت بازخوانی کامل
           send(`data: ${JSON.stringify({ type: "resync" })}\n\n`);
         }
       }
 
-      // ۳. ثبت لیسنر برای رویدادهای جدید زنده
-      unsubscribe = subscribe((payload) => {
-        send(payload);
-      });
+      // ۴. تخلیه رویدادهای صف که شناسه‌شان جدیدتر از آخرین رویداد بازپخش‌شده است
+      for (const item of pendingQueue) {
+        if (item.eventId > highestDeliveredId) {
+          send(item.payload);
+          highestDeliveredId = item.eventId;
+        }
+      }
+      isCatchingUp = false;
 
-      // ۴. ارسال پینگ دوره‌ای هر ۱۵ ثانیه جهت پایدار نگه داشتن کانال در برابر فایروال و NAT
+      // ۵. ارسال پینگ دوره‌ای هر ۱۵ ثانیه جهت باز نگه‌داشتن کانال
       ping = setInterval(() => {
         send(": ping\n\n");
       }, 15000);

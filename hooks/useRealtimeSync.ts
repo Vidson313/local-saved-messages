@@ -28,6 +28,22 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
     onResyncRef.current = onResync;
   }, [onEvent, onResync]);
 
+  /**
+   * فراخوانی امن متد همگام‌سازی با مهار خطاهای Async برای جلوگیری از Unhandled Promise Rejections
+   */
+  const safeResync = useCallback(() => {
+    try {
+      const res = onResyncRef.current();
+      if (res && typeof (res as Promise<void>).catch === "function") {
+        (res as Promise<void>).catch((err) => {
+          console.warn("[RealtimeSync] Resync failed gracefully:", err);
+        });
+      }
+    } catch (err) {
+      console.warn("[RealtimeSync] Synchronous resync error:", err);
+    }
+  }, []);
+
   const clearFallbackPolling = useCallback(() => {
     if (fallbackIntervalRef.current) {
       clearInterval(fallbackIntervalRef.current);
@@ -40,10 +56,10 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
     // در زمان قطعی SSE، یک پولینگ آرام هر ۱۵ ثانیه فعال می‌شود
     fallbackIntervalRef.current = setInterval(() => {
       if (document.visibilityState === "visible") {
-        onResyncRef.current();
+        safeResync();
       }
     }, 15000);
-  }, []);
+  }, [safeResync]);
 
   const connect = useCallback(() => {
     if (!enabled || typeof window === "undefined") return;
@@ -63,7 +79,7 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
 
       // در اتصال مجدد (نه بار اول)، یکبار وضعیت را سینک می‌کنیم تا پیام‌های زمان قطعی لود شوند
       if (!isFirstConnectRef.current) {
-        onResyncRef.current();
+        safeResync();
       }
       isFirstConnectRef.current = false;
     };
@@ -74,7 +90,7 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
         if (data.type === "ready") return;
 
         if (data.type === "resync") {
-          onResyncRef.current();
+          safeResync();
           return;
         }
 
@@ -89,7 +105,7 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
       // فعال‌سازی پولینگ مشروط فقط در زمان بروز اختلال در اتصال
       startFallbackPolling();
     };
-  }, [enabled, clearFallbackPolling, startFallbackPolling]);
+  }, [enabled, clearFallbackPolling, startFallbackPolling, safeResync]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -100,7 +116,7 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         // بازخوانی سبک وضعیت چت‌ها و پیام‌ها در زمان بازگشت به برنامه
-        onResyncRef.current();
+        safeResync();
         if (esRef.current?.readyState === EventSource.CLOSED) {
           connect();
         }
@@ -113,7 +129,7 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
     // مدیریت رویدادهای آنلاین/آفلاین شبکه
     const handleOnline = () => {
       connect();
-      onResyncRef.current();
+      safeResync();
     };
 
     const handleOffline = () => {
@@ -139,7 +155,7 @@ export function useRealtimeSync({ onEvent, onResync, enabled = true }: RealtimeS
         esRef.current = null;
       }
     };
-  }, [enabled, connect, clearFallbackPolling]);
+  }, [enabled, connect, clearFallbackPolling, safeResync]);
 
   return {
     status,

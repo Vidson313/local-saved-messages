@@ -498,7 +498,12 @@ export default function ChatApp() {
   });
 
   useEffect(() => {
-    handleResync().finally(() => setInitialLoading(false));
+    handleResync()
+      .catch((err) => {
+        console.error("[ChatApp] Initial data sync error:", err);
+        toast.error("Failed to load initial data. Please refresh.");
+      })
+      .finally(() => setInitialLoading(false));
   }, [handleResync]);
 
   // ── Derived data ──

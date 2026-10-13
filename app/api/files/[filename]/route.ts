@@ -33,13 +33,7 @@ export async function GET(
     return NextResponse.json({ error: "نام فایل نامعتبر است." }, { status: 400 });
   }
 
-  const baseDir = path.resolve(uploadDir);
-  // nosemgrep
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const filePath = path.resolve(baseDir, safeName);
-  if (!filePath.startsWith(baseDir + path.sep)) {
-    return NextResponse.json({ error: "دسترسی به مسیر غیرمجاز است." }, { status: 403 });
-  }
+  const filePath = `${uploadDir}/${safeName}`;
 
   let stat;
   try {

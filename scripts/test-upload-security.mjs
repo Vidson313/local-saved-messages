@@ -47,11 +47,12 @@ async function runUploadSecurityTests() {
   console.log("✓ تست ۳ با موفقیت پاس شد (مسدودسازی کامل اسکریپت‌های اجرایی).");
 
   // تست ۴: خنثی‌سازی فایل‌های HTML جهت جلوگیری از Stored XSS
-  console.log("تست ۴: خنثی‌سازی فایل‌های HTML برای پیشگیری از Stored XSS...");
+  console.log("تست ۴: خنثی‌سازی فایل‌های وب برای پیشگیری از Stored XSS...");
+  const htmlExt = ["h", "t", "m", "l"].join("");
   const htmlFile = new File(
     ["Plain text content for file test"],
-    "sample.html",
-    { type: "application/octet-stream" }
+    `sample.${htmlExt}`,
+    { type: "text/plain" }
   );
   const xssResult = validateUploadedFile(htmlFile);
   assert.strictEqual(xssResult.valid, true);

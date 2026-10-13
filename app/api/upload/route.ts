@@ -48,13 +48,7 @@ export async function POST(req: Request) {
   const cleanExt = /^\.[a-z0-9.]+$/.test(safeExt) ? safeExt : "";
   const safeFileName = `${Date.now()}-${randomUUID()}${cleanExt}`;
 
-  const baseDir = path.resolve(uploadDir);
-  // nosemgrep
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const outputPath = path.resolve(baseDir, safeFileName);
-  if (!outputPath.startsWith(baseDir + path.sep)) {
-    return NextResponse.json({ error: "مسیر ذخیره‌سازی نامعتبر است." }, { status: 400 });
-  }
+  const outputPath = `${uploadDir}/${safeFileName}`;
 
   // نوشتن محتوا روی دیسک از طریق Stream به منظور جلوگیری از اشغال غیرضروری RAM
   try {

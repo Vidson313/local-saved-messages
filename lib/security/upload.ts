@@ -64,6 +64,12 @@ export type FileValidationFailure = {
 
 export type FileValidationResult = FileValidationSuccess | FileValidationFailure;
 
+export type UploadableFileInput = {
+  name: string;
+  size: number;
+  type?: string;
+};
+
 /**
  * اعتبارسنجی کامل امنیتی فایل ارسالی:
  * - بررسی حجم فایل (جلوگیری از DoS / OOM)
@@ -71,7 +77,7 @@ export type FileValidationResult = FileValidationSuccess | FileValidationFailure
  * - خنثی‌سازی فایل‌های HTML جهت جلوگیری از Stored XSS
  * - ساخت نام یکتا و امن
  */
-export function validateUploadedFile(file: File): FileValidationResult {
+export function validateUploadedFile(file: UploadableFileInput): FileValidationResult {
   if (file.size <= 0) {
     return {
       valid: false,

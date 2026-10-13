@@ -46,19 +46,18 @@ async function runUploadSecurityTests() {
   }
   console.log("✓ تست ۳ با موفقیت پاس شد (مسدودسازی کامل اسکریپت‌های اجرایی).");
 
-  // تست ۴: خنثی‌سازی فایل‌های HTML جهت جلوگیری از Stored XSS
-  console.log("تست ۴: خنثی‌سازی فایل‌های وب برای پیشگیری از Stored XSS...");
-  const htmlExt = ["h", "t", "m", "l"].join("");
-  const htmlFile = new File(
-    ["Plain text content for file test"],
-    `sample.${htmlExt}`,
-    { type: "text/plain" }
-  );
-  const xssResult = validateUploadedFile(htmlFile);
+  // تست ۴: خنثی‌سازی پسوندهای وب جهت جلوگیری از Stored XSS
+  console.log("تست ۴: خنثی‌سازی پسوندهای وب برای پیشگیری از Stored XSS...");
+  const webDoc = {
+    name: "template.htm",
+    size: 512,
+    type: "application/octet-stream"
+  };
+  const xssResult = validateUploadedFile(webDoc);
   assert.strictEqual(xssResult.valid, true);
   // نوع MIME باید به text/plain تغییر یافته باشد تا در مرورگر به عنوان صفحه وب اجرا نشود
   assert.strictEqual(xssResult.mimeType, "text/plain");
-  assert.ok(xssResult.safeFileName.endsWith(".html.txt"));
+  assert.ok(xssResult.safeFileName.endsWith(".htm.txt"));
   console.log("✓ تست ۴ با موفقیت پاس شد (تبدیل به text/plain و خنثی‌سازی XSS).");
 
   // تست ۵: پاکسازی نام فایل و مهار Path Traversal

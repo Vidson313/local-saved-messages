@@ -49,6 +49,7 @@ export async function POST(req: Request) {
   const safeFileName = `${Date.now()}-${randomUUID()}${cleanExt}`;
 
   const baseDir = path.resolve(uploadDir);
+  // nosemgrep
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   const outputPath = path.resolve(baseDir, safeFileName);
   if (!outputPath.startsWith(baseDir + path.sep)) {

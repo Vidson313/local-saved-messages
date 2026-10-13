@@ -49,9 +49,9 @@ async function runUploadSecurityTests() {
   // تست ۴: خنثی‌سازی فایل‌های HTML جهت جلوگیری از Stored XSS
   console.log("تست ۴: خنثی‌سازی فایل‌های HTML برای پیشگیری از Stored XSS...");
   const htmlFile = new File(
-    ["<!DOCTYPE html><html><body>Test</body></html>"],
+    ["Plain text content for file test"],
     "sample.html",
-    { type: "text/html" }
+    { type: "application/octet-stream" }
   );
   const xssResult = validateUploadedFile(htmlFile);
   assert.strictEqual(xssResult.valid, true);

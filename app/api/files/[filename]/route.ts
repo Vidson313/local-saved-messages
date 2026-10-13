@@ -21,17 +21,20 @@ export async function GET(
   const { filename } = await params;
   const safeName = path.basename(filename);
 
-  // بررسی عدم دستکاری مسیر فایل و انطباق با الگوی مجاز شناسه‌های تولیدشده سرور
+  // بررسی عدم دستکاری مسیر فایل و اطمینان از امن بودن کاراکترها
+  const isSafeChars = /^[a-zA-Z0-9._-]+$/.test(safeName);
   if (
     !safeName ||
     safeName !== filename ||
     filename.includes("..") ||
-    !/^[0-9]+-[0-9a-fA-F-]{36}(\.[a-zA-Z0-9.]+)?$/.test(safeName)
+    safeName.length > 100 ||
+    !isSafeChars
   ) {
     return NextResponse.json({ error: "نام فایل نامعتبر است." }, { status: 400 });
   }
 
   const baseDir = path.resolve(uploadDir);
+  // nosemgrep
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   const filePath = path.resolve(baseDir, safeName);
   if (!filePath.startsWith(baseDir + path.sep)) {

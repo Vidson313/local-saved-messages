@@ -10,7 +10,7 @@ const uploadDir =
 
 /**
  * اندپوینت امن سرو و دانلود فایل‌ها
- * - مهار کامل Path Traversal
+ * - مهار کامل Path Traversal با تطابق الگوی دقیق نام‌های امن
  * - ارسال هدرهای امنیتی ضد اجرای اسکریپت (nosniff و CSP sandbox)
  * - دانلود با نام اصلی فایل به صورت چندزبانه استاندارد (RFC 5987)
  */
@@ -21,14 +21,26 @@ export async function GET(
   const { filename } = await params;
   const safeName = path.basename(filename);
 
-  // بررسی عدم دستکاری مسیر فایل
-  if (!safeName || safeName !== filename || filename.includes("..")) {
+  // بررسی عدم دستکاری مسیر فایل و انطباق با الگوی مجاز شناسه‌های تولیدشده سرور
+  if (
+    !safeName ||
+    safeName !== filename ||
+    filename.includes("..") ||
+    !/^[0-9]+-[0-9a-fA-F-]{36}(\.[a-zA-Z0-9.]+)?$/.test(safeName)
+  ) {
     return NextResponse.json({ error: "نام فایل نامعتبر است." }, { status: 400 });
   }
 
-  const filePath = path.join(uploadDir, safeName);
+  const baseDir = path.resolve(uploadDir);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  const filePath = path.resolve(baseDir, safeName);
+  if (!filePath.startsWith(baseDir + path.sep)) {
+    return NextResponse.json({ error: "دسترسی به مسیر غیرمجاز است." }, { status: 403 });
+  }
+
   let stat;
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     stat = await fs.stat(filePath);
     if (!stat.isFile()) {
       return NextResponse.json({ error: "فایل یافت نشد." }, { status: 404 });
@@ -72,6 +84,7 @@ export async function GET(
   headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
   headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const nodeStream = createReadStream(filePath);
   const webStream = Readable.toWeb(nodeStream);
 

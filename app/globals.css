@@ -2643,3 +2643,329 @@ img[loading="lazy"] {
   align-items: center;
   gap: 6px;
 }
+
+/* ═══════════════════════════════════════════════
+   Telegram UX: Markdown, Code Blocks & Formatting
+   ═══════════════════════════════════════════════ */
+
+.tg-formatted-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Code Blocks */
+.tg-code-block {
+  margin: 6px 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--tg-border);
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="dark"] .tg-code-block {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.tg-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--tg-border);
+  font-size: 11px;
+}
+
+[data-theme="dark"] .tg-code-header {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.tg-code-lang {
+  color: var(--tg-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.tg-code-copy-btn {
+  background: none;
+  border: none;
+  color: var(--tg-blue);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tg-code-copy-btn:hover {
+  background: var(--tg-ghost-hover);
+}
+
+.tg-code-copy-btn .tg-copy-ok {
+  color: var(--tg-green);
+}
+
+.tg-code-pre {
+  margin: 0;
+  padding: 8px 12px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tg-text);
+  tab-size: 2;
+}
+
+.tg-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--tg-blue);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .tg-inline-code {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #79c0ff;
+}
+
+/* Spoilers */
+.tg-spoiler {
+  background: rgba(120, 120, 120, 0.35);
+  filter: blur(4px);
+  cursor: pointer;
+  user-select: none;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: filter 0.2s ease, background 0.2s ease;
+}
+
+.tg-spoiler.revealed {
+  filter: blur(0);
+  background: transparent;
+  user-select: auto;
+  cursor: text;
+}
+
+/* Quotes */
+.tg-quote {
+  margin: 4px 0;
+  padding: 4px 10px;
+  border-left: 3px solid var(--tg-blue);
+  background: rgba(51, 144, 236, 0.08);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.95em;
+  color: var(--tg-text);
+}
+
+[dir="rtl"] .tg-quote,
+.tg-quote[dir="rtl"] {
+  border-left: none;
+  border-right: 3px solid var(--tg-blue);
+  border-radius: 6px 0 0 6px;
+}
+
+/* Search match highlights */
+mark.tg-search-match {
+  background: rgba(255, 224, 102, 0.6);
+  color: inherit;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+[data-theme="dark"] mark.tg-search-match {
+  background: rgba(255, 193, 7, 0.45);
+}
+
+/* ═══════════════════════════════════════════════
+   Telegram UX: Custom Audio Player
+   ═══════════════════════════════════════════════ */
+
+.tg-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(380px, 68vw);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--tg-border);
+}
+
+[data-theme="dark"] .tg-audio-player {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.tg-audio-play-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--tg-blue);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 8px rgba(51, 144, 236, 0.35);
+}
+
+.tg-audio-play-btn:hover {
+  transform: scale(1.05);
+}
+
+.tg-audio-play-btn:active {
+  transform: scale(0.95);
+}
+
+.tg-audio-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tg-audio-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tg-audio-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tg-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-audio-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tg-audio-rate-btn {
+  background: rgba(51, 144, 236, 0.12);
+  border: none;
+  color: var(--tg-blue);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tg-audio-rate-btn:hover {
+  background: rgba(51, 144, 236, 0.22);
+}
+
+.tg-audio-dl-btn {
+  color: var(--tg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.tg-audio-dl-btn:hover {
+  color: var(--tg-blue);
+}
+
+.tg-audio-track-wrap {
+  width: 100%;
+}
+
+.tg-audio-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--tg-blue) 0%,
+    var(--tg-blue) var(--progress-percent, 0%),
+    rgba(120, 120, 120, 0.25) var(--progress-percent, 0%),
+    rgba(120, 120, 120, 0.25) 100%
+  );
+  outline: none;
+  cursor: pointer;
+  transition: height 0.15s;
+}
+
+.tg-audio-slider:hover {
+  height: 6px;
+}
+
+.tg-audio-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tg-blue);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+
+.tg-audio-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.tg-audio-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tg-blue);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.tg-audio-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--tg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════
+   Telegram UX: RTL & Bidirectional Text Support
+   ═══════════════════════════════════════════════ */
+
+[dir="auto"] {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+.tg-message-text[dir="auto"] {
+  unicode-bidi: plaintext;
+}
+
+/* ═══════════════════════════════════════════════
+   Performance: Virtualized Message Row Rendering
+   ═══════════════════════════════════════════════ */
+
+.tg-message-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 70px;
+}
+

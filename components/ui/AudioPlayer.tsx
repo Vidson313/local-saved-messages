@@ -189,6 +189,9 @@ export function TelegramAudioPlayer({
             onTouchEnd={() => {
               setIsSeeking(false);
             }}
+            onTouchCancel={() => {
+              setIsSeeking(false);
+            }}
             className="tg-audio-slider"
             style={{ "--progress-percent": `${progressPercent}%` } as React.CSSProperties}
             aria-label="Audio seeker"

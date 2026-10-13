@@ -21,6 +21,7 @@ import { useAppLock, LockScreen, SetPinModal } from "@/components/ui/AppLockModa
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { TagEditor } from "@/components/ui/TagEditor";
 import { TagList } from "@/components/ui/TagBadge";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 type Chat = {
   id: string;
@@ -468,37 +469,44 @@ export default function ChatApp() {
     }
   }
 
-  useEffect(() => {
-    Promise.all([syncChats(), syncMessages(), fetchAllTags()]).finally(() => setInitialLoading(false));
-    const msgInterval = window.setInterval(syncMessages, 2000);
-    const chatInterval = window.setInterval(syncChats, 5000);
-    const es = new EventSource("/api/events");
-
-    es.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "created") setMessages((prev) => mergeById([...prev, data.message]));
-      if (data.type === "deleted") setMessages((prev) => prev.filter((message) => message.id !== data.id));
-      if (data.type === "updated") setMessages((prev) => mergeById([...prev.filter((m) => m.id !== data.message.id), data.message]));
-      if (data.type === "chat-created") setChats((prev) => [...prev, data.chat]);
-      if (data.type === "chat-updated") setChats((prev) => prev.map((c) => c.id === data.chat.id ? data.chat : c));
-      if (data.type === "chat-deleted") {
-        setChats((prev) => prev.filter((c) => c.id !== data.chatId));
-        setMessages((prev) => prev.filter((m) => m.chatId !== data.chatId));
-        setActiveChatId((current) => { if (current === data.chatId) { setFilterTag(null); return "default"; } return current; });
-      }
-    };
-
-    es.onerror = () => {
-      syncChats();
-      syncMessages();
-    };
-
-    return () => {
-      window.clearInterval(msgInterval);
-      window.clearInterval(chatInterval);
-      es.close();
-    };
+  const handleRealtimeEvent = useCallback((data: Record<string, unknown>) => {
+    if (data.type === "created") setMessages((prev) => mergeById([...prev, data.message as Msg]));
+    if (data.type === "deleted") setMessages((prev) => prev.filter((message) => message.id !== data.id));
+    if (data.type === "updated") setMessages((prev) => mergeById([...prev.filter((m) => m.id !== (data.message as Msg).id), data.message as Msg]));
+    if (data.type === "chat-created") setChats((prev) => [...prev, data.chat as Chat]);
+    if (data.type === "chat-updated") setChats((prev) => prev.map((c) => c.id === (data.chat as Chat).id ? (data.chat as Chat) : c));
+    if (data.type === "chat-deleted") {
+      setChats((prev) => prev.filter((c) => c.id !== data.chatId));
+      setMessages((prev) => prev.filter((m) => m.chatId !== data.chatId));
+      setActiveChatId((current) => {
+        if (current === data.chatId) {
+          setFilterTag(null);
+          return "default";
+        }
+        return current;
+      });
+    }
   }, []);
+
+  const handleResync = useCallback(async () => {
+    await Promise.all([syncChats(), syncMessages(), fetchAllTags()]);
+  }, []);
+
+  const { status: connectionStatus } = useRealtimeSync({
+    onEvent: handleRealtimeEvent,
+    onResync: handleResync
+  });
+
+  useEffect(() => {
+    handleResync()
+      .catch((err) => {
+        console.error("[ChatApp] Initial data sync error:", err);
+        toast.error("Failed to load initial data. Please refresh.");
+      })
+      .finally(() => {
+        setInitialLoading(false);
+      });
+  }, [handleResync]);
 
   // ── Derived data ──
 
@@ -1275,8 +1283,40 @@ export default function ChatApp() {
               </button>
             )}
             <div className="tg-title-block">
-              <strong>{activeChat?.name || "Saved Messages"}</strong>
-              <small>{chatMessages.length} items</small>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <strong>{activeChat?.name || "Saved Messages"}</strong>
+                <span
+                  title={
+                    connectionStatus === "connected"
+                      ? "Realtime connected"
+                      : connectionStatus === "connecting"
+                      ? "Connecting to server..."
+                      : "Disconnected"
+                  }
+                  style={{
+                    display: "inline-block",
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    backgroundColor:
+                      connectionStatus === "connected"
+                        ? "#22c55e"
+                        : connectionStatus === "connecting"
+                        ? "#eab308"
+                        : "#ef4444",
+                    boxShadow:
+                      connectionStatus === "connected"
+                        ? "0 0 6px rgba(34, 197, 94, 0.6)"
+                        : "none"
+                  }}
+                  aria-label={`Connection status: ${connectionStatus}`}
+                />
+              </div>
+              <small>
+                {chatMessages.length} items
+                {connectionStatus === "connecting" && " • connecting..."}
+                {connectionStatus === "disconnected" && " • offline"}
+              </small>
             </div>
             <div className="tg-header-actions">
               <button className="tg-ghost-button" title="Search">

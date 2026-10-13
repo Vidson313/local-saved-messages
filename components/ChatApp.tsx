@@ -275,6 +275,14 @@ function formatDay(value: string) {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
+function getDownloadUrl(content: string, download = true) {
+  if (content.startsWith("/uploads/")) {
+    const filename = content.replace("/uploads/", "");
+    return `/api/files/${filename}${download ? "?download=1" : ""}`;
+  }
+  return content;
+}
+
 function mergeById(messages: Msg[]) {
   const map = new Map<string, Msg>();
   for (const message of messages) {
@@ -647,7 +655,10 @@ export default function ChatApp() {
         fd.append("file", file);
         fd.append("chatId", activeChatId);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(errData?.error || "Upload failed");
+        }
         const message = (await res.json()) as Msg;
         setMessages((prev) => mergeById([...prev, message]));
       }
@@ -655,8 +666,9 @@ export default function ChatApp() {
       requestAnimationFrame(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       });
-    } catch {
-      toast.error("File upload failed.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "File upload failed.";
+      toast.error(msg);
     } finally {
       setUploading(false);
       syncMessages();
@@ -912,7 +924,10 @@ export default function ChatApp() {
     fd.append("file", file);
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errData?.error || "Upload failed");
+      }
       const msg = (await res.json()) as Msg;
       if (target === "new") {
         setNewChatAvatar(msg.content);
@@ -921,8 +936,9 @@ export default function ChatApp() {
         setEditChatAvatar(msg.content);
         setEditChatAvatarType("image");
       }
-    } catch {
-      toast.error("Failed to upload avatar.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload avatar.";
+      toast.error(msg);
     }
   }
 
@@ -1467,7 +1483,7 @@ export default function ChatApp() {
                     ) : (
                       <div className="tg-file-message">
                         <div className="tg-file-heading">
-                          <a className="tg-file-name" href={message.content} download={message.fileName || undefined}>
+                          <a className="tg-file-name" href={getDownloadUrl(message.content, true)} download={message.fileName || undefined}>
                             {message.fileName || "Download file"}
                           </a>
                           <span className="tg-file-size">{formatBytes(message.fileSize)}</span>
@@ -1540,7 +1556,7 @@ export default function ChatApp() {
               {contextMessage.type === "FILE" && (
                 <a
                   className="tg-context-item"
-                  href={contextMessage.content}
+                  href={getDownloadUrl(contextMessage.content, true)}
                   download={contextMessage.fileName || undefined}
                   onClick={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
                 >
@@ -1692,7 +1708,7 @@ export default function ChatApp() {
           {tab === "media" && (
             <div className="tg-media-grid">
               {mediaMessages.map((message) => (
-                <a key={message.id} href={message.content} className="tg-media-thumb" download={message.fileName || undefined}>
+                <a key={message.id} href={getDownloadUrl(message.content, true)} className="tg-media-thumb" download={message.fileName || undefined}>
                   {message.mimeType?.startsWith("video/") ? (
                     <video src={message.content} muted />
                   ) : (
@@ -1722,7 +1738,7 @@ export default function ChatApp() {
           {tab === "files" && (
             <div className="tg-side-list">
               {fileMessages.map((message) => (
-                <a key={message.id} href={message.content} download={message.fileName || undefined} className="tg-side-row">
+                <a key={message.id} href={getDownloadUrl(message.content, true)} download={message.fileName || undefined} className="tg-side-row">
                   <span className="tg-side-icon">
                     <Icon name="file" />
                   </span>

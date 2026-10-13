@@ -703,6 +703,29 @@ button {
   display: block;
 }
 
+.tg-media-audio-thumb {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(51, 144, 236, 0.1);
+  color: var(--tg-blue);
+  text-align: center;
+}
+
+.tg-media-audio-name {
+  font-size: 11px;
+  color: var(--tg-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90%;
+}
+
 .tg-side-list {
   display: grid;
   gap: 8px;

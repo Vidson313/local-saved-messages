@@ -19,7 +19,9 @@ function CopyCodeButton({ code }: { code: string }) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       toast.success("Code copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     } catch {
       toast.error("Failed to copy code");
     }
@@ -29,7 +31,9 @@ function CopyCodeButton({ code }: { code: string }) {
     <button
       type="button"
       className="tg-code-copy-btn"
-      onClick={handleCopy}
+      onClick={() => {
+        void handleCopy();
+      }}
       aria-label="Copy code block"
       title="Copy code"
     >
@@ -51,7 +55,9 @@ function SpoilerText({ children }: { children: ReactNode }) {
   return (
     <span
       className={`tg-spoiler ${revealed ? "revealed" : ""}`}
-      onClick={() => setRevealed(true)}
+      onClick={() => {
+        setRevealed(true);
+      }}
       title={revealed ? "" : "Click to reveal spoiler"}
       role="button"
       tabIndex={0}
@@ -67,30 +73,46 @@ function SpoilerText({ children }: { children: ReactNode }) {
 }
 
 /**
- * هایلایت کردن کلمات مورد جستجو در بخش‌های متنی
+ * هایلایت کردن کلمات مورد جستجو با اسکنر خطی (بدون ساخت رجکس پویا جهت جلوگیری از ReDoS)
  */
 function highlight(text: string, needle?: string): ReactNode {
   if (!needle || !needle.trim()) return text;
-  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
-  if (parts.length === 1) return text;
+  const lowerText = text.toLowerCase();
+  const lowerNeedle = needle.toLowerCase();
+  const needleLen = lowerNeedle.length;
+  if (needleLen === 0) return text;
 
-  return parts.map((part, i) =>
-    part.toLowerCase() === needle.toLowerCase() ? (
-      <mark key={`m-${part}-${i}`} className="tg-search-match">
-        {part}
+  const nodes: ReactNode[] = [];
+  let startIndex = 0;
+  let matchIndex = lowerText.indexOf(lowerNeedle, startIndex);
+
+  if (matchIndex === -1) return text;
+
+  let key = 0;
+  while (matchIndex !== -1) {
+    if (matchIndex > startIndex) {
+      nodes.push(text.slice(startIndex, matchIndex));
+    }
+    nodes.push(
+      <mark key={`m-${key++}`} className="tg-search-match">
+        {text.slice(matchIndex, matchIndex + needleLen)}
       </mark>
-    ) : (
-      part
-    )
-  );
+    );
+    startIndex = matchIndex + needleLen;
+    matchIndex = lowerText.indexOf(lowerNeedle, startIndex);
+  }
+
+  if (startIndex < text.length) {
+    nodes.push(text.slice(startIndex));
+  }
+
+  return nodes;
 }
 
 /**
  * پردازش فرمت‌های درون‌خطی (Bold, Italic, Strikethrough, Code, Spoiler, Links)
  */
 function formatInline(text: string, needle?: string): ReactNode[] {
-  // الگوهای لینک، اسپویلر، کد اینلاین، بولد، ایتالیک، و خط‌خورده
   const tokenRegex =
     /(\|\|[\s\S]+?\|\|)|(`[^`\n]+`)|(\*\*[\s\S]+?\*\*|\*[^*\n]+?\*)|(__[\s\S]+?__|_[^_\n]+?_)|(~~[\s\S]+?~~)|(\[[^\]]+\]\(https?:\/\/[^\s)]+\))|(https?:\/\/[^\s]+)/g;
 
@@ -100,7 +122,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
   let counter = 0;
 
   while ((match = tokenRegex.exec(text)) !== null) {
-    // متن قبل از توکن
     if (match.index > lastIndex) {
       nodes.push(
         <React.Fragment key={`txt-${counter++}`}>
@@ -112,7 +133,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
     const [full] = match;
 
     if (full.startsWith("||") && full.endsWith("||")) {
-      // اسپویلر
       const inner = full.slice(2, -2);
       nodes.push(
         <SpoilerText key={`sp-${counter++}`}>
@@ -120,7 +140,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
         </SpoilerText>
       );
     } else if (full.startsWith("`") && full.endsWith("`")) {
-      // کد اینلاین
       const inner = full.slice(1, -1);
       nodes.push(
         <code key={`code-${counter++}`} className="tg-inline-code" dir="ltr">
@@ -131,7 +150,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
       (full.startsWith("**") && full.endsWith("**")) ||
       (full.startsWith("*") && full.endsWith("*"))
     ) {
-      // بولد
       const len = full.startsWith("**") ? 2 : 1;
       const inner = full.slice(len, -len);
       nodes.push(
@@ -143,7 +161,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
       (full.startsWith("__") && full.endsWith("__")) ||
       (full.startsWith("_") && full.endsWith("_"))
     ) {
-      // ایتالیک
       const len = full.startsWith("__") ? 2 : 1;
       const inner = full.slice(len, -len);
       nodes.push(
@@ -152,7 +169,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
         </em>
       );
     } else if (full.startsWith("~~") && full.endsWith("~~")) {
-      // خط‌خورده
       const inner = full.slice(2, -2);
       nodes.push(
         <del key={`del-${counter++}`}>
@@ -160,7 +176,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
         </del>
       );
     } else if (full.startsWith("[") && full.includes("](") && full.endsWith(")")) {
-      // لینک مارک‌داون
       const closeBracket = full.indexOf("](");
       const label = full.slice(1, closeBracket);
       const url = full.slice(closeBracket + 2, -1);
@@ -176,7 +191,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
         </a>
       );
     } else if (/^https?:\/\//.test(full)) {
-      // لینک مستقیم
       nodes.push(
         <a
           key={`url-${counter++}`}
@@ -199,7 +213,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
     lastIndex = tokenRegex.lastIndex;
   }
 
-  // باقی‌مانده متن
   if (lastIndex < text.length) {
     nodes.push(
       <React.Fragment key={`end-${counter++}`}>
@@ -217,7 +230,6 @@ function formatInline(text: string, needle?: string): ReactNode[] {
 export function MessageFormatter({ content, searchNeedle }: MessageFormatterProps) {
   if (!content) return null;
 
-  // ۱. شناسایی بلاک‌های کد چندخطی (Code Blocks)
   const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g;
   const sections: ReactNode[] = [];
   let lastIndex = 0;
@@ -225,7 +237,6 @@ export function MessageFormatter({ content, searchNeedle }: MessageFormatterProp
   let blockIndex = 0;
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
-    // متن قبل از بلاک کد
     if (match.index > lastIndex) {
       const textBefore = content.slice(lastIndex, match.index);
       sections.push(renderTextParagraphs(textBefore, searchNeedle, `pre-${blockIndex}`));
@@ -241,7 +252,7 @@ export function MessageFormatter({ content, searchNeedle }: MessageFormatterProp
           <CopyCodeButton code={codeBody} />
         </div>
         <pre className="tg-code-pre">
-          <code>{codeBody}</code>
+          <code>{searchNeedle ? highlight(codeBody, searchNeedle) : codeBody}</code>
         </pre>
       </div>
     );
@@ -286,8 +297,7 @@ function renderTextParagraphs(
     }
   }
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (const line of lines) {
     if (line.startsWith("> ") || line === ">") {
       inQuote = true;
       quoteBuffer.push(line.replace(/^>\s?/, ""));

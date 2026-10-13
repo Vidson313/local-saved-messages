@@ -30,13 +30,18 @@ export function TelegramAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState<1 | 1.5 | 2>(1);
   const [isSeeking, setIsSeeking] = useState(false);
+  const isSeekingRef = useRef(false);
+
+  useEffect(() => {
+    isSeekingRef.current = isSeeking;
+  }, [isSeeking]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      if (!isSeeking) {
+      if (!isSeekingRef.current) {
         setCurrentTime(audio.currentTime);
       }
     };
@@ -50,8 +55,12 @@ export function TelegramAudioPlayer({
       setCurrentTime(0);
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
@@ -67,7 +76,7 @@ export function TelegramAudioPlayer({
       audio.removeEventListener("pause", handlePause);
       audio.pause();
     };
-  }, [isSeeking]);
+  }, [src]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -168,10 +177,18 @@ export function TelegramAudioPlayer({
             step={0.1}
             value={currentTime}
             onChange={handleSeek}
-            onMouseDown={() => setIsSeeking(true)}
-            onMouseUp={() => setIsSeeking(false)}
-            onTouchStart={() => setIsSeeking(true)}
-            onTouchEnd={() => setIsSeeking(false)}
+            onMouseDown={() => {
+              setIsSeeking(true);
+            }}
+            onMouseUp={() => {
+              setIsSeeking(false);
+            }}
+            onTouchStart={() => {
+              setIsSeeking(true);
+            }}
+            onTouchEnd={() => {
+              setIsSeeking(false);
+            }}
             className="tg-audio-slider"
             style={{ "--progress-percent": `${progressPercent}%` } as React.CSSProperties}
             aria-label="Audio seeker"

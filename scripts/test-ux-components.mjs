@@ -36,7 +36,8 @@ function parseMarkdownLinks(text) {
 }
 
 function detectDirection(text) {
-  const rtlChars = /[؀-ۿݐ-ݿ֐-׿ﭐ-﷿ﹰ-﻿]/;
+  // استفاده از کدهای یونیکد صریح جهت جلوگیری از کاراکترهای نامرئی
+  const rtlChars = new RegExp("[\\u0600-\\u06FF\\u0750-\\u077F\\u0590-\\u05FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF]");
   const ltrChars = /[a-zA-Z]/;
 
   for (const char of text) {

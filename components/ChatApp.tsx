@@ -1377,8 +1377,15 @@ export default function ChatApp() {
         {/* Pinned message bar */}
         {pinnedMessages.length > 0 && !selectMode && (
           <div className="tg-pinned-bar" onClick={() => {
-            const pinnedEl = document.querySelector(`[data-message-id="${pinnedMessages[pinnedMessages.length - 1].id}"]`);
-            pinnedEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+            const target = pinnedMessages[pinnedMessages.length - 1];
+            const targetIdx = filteredMessages.findIndex((m) => m.id === target.id);
+            if (targetIdx !== -1 && filteredMessages.length - targetIdx > visibleCount) {
+              setVisibleCount(filteredMessages.length - targetIdx + 20);
+            }
+            requestAnimationFrame(() => {
+              const pinnedEl = document.querySelector(`[data-message-id="${target.id}"]`);
+              pinnedEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
           }}>
             <span className="tg-pinned-icon">
               <Icon name="pin" />
@@ -1748,6 +1755,11 @@ export default function ChatApp() {
                 <a key={message.id} href={getDownloadUrl(message.content, true)} className="tg-media-thumb" download={message.fileName || undefined}>
                   {message.mimeType?.startsWith("video/") ? (
                     <video src={message.content} muted />
+                  ) : message.mimeType?.startsWith("audio/") ? (
+                    <div className="tg-media-audio-thumb" title={message.fileName || "Audio"}>
+                      <Icon name="file" />
+                      <span className="tg-media-audio-name">{message.fileName || "Audio"}</span>
+                    </div>
                   ) : (
                     <img src={message.content} alt={message.fileName || "media"} loading="lazy" />
                   )}

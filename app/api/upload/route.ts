@@ -6,13 +6,28 @@ import path from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { broadcast } from "@/lib/events";
-import { validateUploadedFile } from "@/lib/security/upload";
+import { MAX_FILE_SIZE_BYTES, validateUploadedFile } from "@/lib/security/upload";
 import { createFileMessage } from "@/lib/store";
 
 const uploadDir =
   process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
 
 export async function POST(req: Request) {
+  // بررسی سقف حجم درخواست پیش از پردازش و بافر کردن بدنه فرم (Upstream Content-Length check)
+  const contentLengthHeader = req.headers.get("content-length");
+  if (contentLengthHeader) {
+    const contentLength = parseInt(contentLengthHeader, 10);
+    // ۵ مگابایت برای هدرها و متادیتای multipart
+    const maxAllowedRequestSize = MAX_FILE_SIZE_BYTES + 5 * 1024 * 1024;
+    if (!Number.isNaN(contentLength) && contentLength > maxAllowedRequestSize) {
+      const maxMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
+      return NextResponse.json(
+        { error: `حجم درخواست بیش از حد مجاز است (حداکثر سقف مجاز: ${maxMb} مگابایت).` },
+        { status: 413 }
+      );
+    }
+  }
+
   let formData: FormData;
   try {
     formData = await req.formData();

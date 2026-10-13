@@ -69,13 +69,18 @@ export async function GET(
 
   const dispositionType = isSafePreviewable ? "inline" : "attachment";
   const encodedName = encodeURIComponent(originalName);
+  // پاکسازی دقیق fallback ASCII جهت جلوگیری از شکستن کوتیشن‌ها و Header Injection
+  const safeAsciiFallback = originalName
+    .replace(/["\\\r\n;]/g, "_")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .trim() || "download";
 
   const headers = new Headers();
   headers.set("Content-Type", mimeType);
   headers.set("Content-Length", stat.size.toString());
   headers.set(
     "Content-Disposition",
-    `${dispositionType}; filename="${originalName.replace(/[^\x20-\x7E]/g, "_")}"; filename*=UTF-8''${encodedName}`
+    `${dispositionType}; filename="${safeAsciiFallback}"; filename*=UTF-8''${encodedName}`
   );
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Content-Security-Policy", "default-src 'none'; sandbox");

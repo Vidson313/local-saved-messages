@@ -31,8 +31,9 @@ export const BLOCKED_SERVER_EXTENSIONS = new Set([
  * پاکسازی نام اصلی فایل و حذف کاراکترهای خطرناک و Path Traversal
  */
 export function sanitizeFileName(rawName: string): string {
-  // حذف جداکننده‌های دایرکتوری و نال بایت
-  const base = path.basename(rawName).replace(/\0/g, "").trim();
+  // یکسان‌سازی جداکننده‌های دایرکتوری در تمامی سیستم‌عامل‌ها (لینوکس و ویندوز)
+  const normalizedSeparators = rawName.replace(/\\/g, "/");
+  const base = path.basename(normalizedSeparators).replace(/\0/g, "").trim();
   // حذف کاراکترهای کنترلی غیرقابل چاپ
   const cleaned = base.replace(/[\x00-\x1F\x7F]/g, "");
   return cleaned.slice(0, 255) || "unnamed-file";

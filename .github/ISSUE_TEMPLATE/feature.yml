@@ -1,0 +1,35 @@
+name: Feature Request
+description: Propose a new feature, enhancement, or capability
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the proposed feature and why it would be valuable.
+  - type: textarea
+    id: what-should-it-do
+    attributes:
+      label: What should it do?
+      description: A clear and concise description of the proposed feature.
+      placeholder: Describe the feature, user interface, or workflow...
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this needed?
+      description: Explain the problem or user need this feature addresses.
+      placeholder: Why would users find this helpful?
+    validations:
+      required: true
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: Checklist for completion of this feature (to be tracked by maintainers).
+      options:
+        - label: Implementation completed and adheres to project conventions
+        - label: Tests written or updated (`npm test` passes)
+        - label: Production build succeeds (`npm run build`)
+        - label: Tested manually across desktop and mobile viewports

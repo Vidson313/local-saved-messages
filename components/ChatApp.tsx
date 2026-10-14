@@ -109,39 +109,67 @@ type IconName =
 
 const EMOJI_OPTIONS = ["💾", "📌", "📂", "🗂️", "📝", "💡", "🔖", "⭐", "🎵", "🖼️", "🎬", "📚", "🔧", "💼", "🏠", "🎮", "💰", "🎯", "❤️", "🚀"];
 
-const ICON_MAP: Record<IconName, LucideIcon> = {
-  attach: Paperclip,
-  copy: Copy,
-  delete: Trash2,
-  download: Download,
-  file: FileText,
-  saved: Bookmark,
-  search: Search,
-  send: Send,
-  menu: Menu,
-  dots: MoreVertical,
-  link: Link2,
-  pin: Pin,
-  unpin: PinOff,
-  save: Save,
-  unsave: SaveOff,
-  select: CheckCircle2,
-  close: X,
-  check: Check,
-  plus: Plus,
-  edit: Pencil,
-  camera: Camera,
-  back: ArrowLeft,
-  keyboard: KeyboardIcon,
-  lock: Lock,
-  forward: Forward,
-  reply: Reply,
-  tag: Tag
-};
+function getLucideIcon(name: IconName): LucideIcon {
+  switch (name) {
+    case "attach":
+      return Paperclip;
+    case "copy":
+      return Copy;
+    case "delete":
+      return Trash2;
+    case "download":
+      return Download;
+    case "file":
+      return FileText;
+    case "saved":
+      return Bookmark;
+    case "search":
+      return Search;
+    case "send":
+      return Send;
+    case "menu":
+      return Menu;
+    case "dots":
+      return MoreVertical;
+    case "link":
+      return Link2;
+    case "pin":
+      return Pin;
+    case "unpin":
+      return PinOff;
+    case "save":
+      return Save;
+    case "unsave":
+      return SaveOff;
+    case "select":
+      return CheckCircle2;
+    case "close":
+      return X;
+    case "check":
+      return Check;
+    case "plus":
+      return Plus;
+    case "edit":
+      return Pencil;
+    case "camera":
+      return Camera;
+    case "back":
+      return ArrowLeft;
+    case "keyboard":
+      return KeyboardIcon;
+    case "lock":
+      return Lock;
+    case "forward":
+      return Forward;
+    case "reply":
+      return Reply;
+    case "tag":
+      return Tag;
+  }
+}
 
 function Icon({ name }: { name: IconName }) {
-  const LucideComponent = ICON_MAP[name];
-  if (!LucideComponent) return null;
+  const LucideComponent = getLucideIcon(name);
   return (
     <LucideComponent
       aria-hidden="true"

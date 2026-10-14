@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { broadcast } from "@/lib/events";
-import { deleteMessage, updateMessage } from "@/lib/store";
+import { MAX_MESSAGE_LENGTH, deleteMessage, updateMessage } from "@/lib/store";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads");
 
@@ -35,7 +35,19 @@ export async function PATCH(
   if (typeof body.pinned === "boolean") updates.pinned = body.pinned;
   if (typeof body.saved === "boolean") updates.saved = body.saved;
   if (Array.isArray(body.tags)) updates.tags = body.tags.filter((t: unknown) => typeof t === "string");
-  if (typeof body.content === "string") updates.content = body.content;
+  if (typeof body.content === "string") {
+    const trimmed = body.content.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
+    }
+    if (trimmed.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message exceeds maximum allowed length (${MAX_MESSAGE_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
+    updates.content = trimmed;
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid updates" }, { status: 400 });

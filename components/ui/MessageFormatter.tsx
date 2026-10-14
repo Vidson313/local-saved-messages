@@ -109,12 +109,25 @@ function highlight(text: string, needle?: string): ReactNode {
   return nodes;
 }
 
+const MAX_INLINE_LENGTH = 4000;
+const MAX_INLINE_TOKENS = 250;
+const MAX_RECURSION_DEPTH = 2;
+
 /**
  * پردازش فرمت‌های درون‌خطی (Bold, Italic, Strikethrough, Code, Spoiler, Links)
+ * مجهز به Parsing Budget و الگوهای کراندار جهت جلوگیری از ReDoS و مصرف بیش از حد CPU
  */
-function formatInline(text: string, needle?: string): ReactNode[] {
+function formatInline(text: string, needle?: string, depth = 0): ReactNode[] {
+  if (!text) return [];
+
+  // در صورت طولانی بودن غیرعادی خط یا رسیدن به سقف عمق تودرتویی، به عنوان متن ساده امن رندر می‌شود
+  if (text.length > MAX_INLINE_LENGTH || depth >= MAX_RECURSION_DEPTH) {
+    return [highlight(text, needle)];
+  }
+
+  // الگوهای کراندار جهت تضمین پیچیدگی زمانی خطی
   const tokenRegex =
-    /(\|\|[\s\S]+?\|\|)|(`[^`\n]+`)|(\*\*[\s\S]+?\*\*|\*[^*\n]+?\*)|(__[\s\S]+?__|_[^_\n]+?_)|(~~[\s\S]+?~~)|(\[[^\]]+\]\(https?:\/\/[^\s)]+\))|(https?:\/\/[^\s]+)/g;
+    /(\|\|[^\n]{1,1000}?\|\|)|(`[^`\n]{1,1000}`)|(\*\*[^\n]{1,1000}?\*\*|\*[^*\n]{1,500}?\*)|(__[^\n]{1,1000}?__|_[^_\n]{1,500}?_)|(~~[^\n]{1,1000}?~~)|(\[[^\]\n]{1,300}\]\(https?:\/\/[^\s)\n]{1,2000}\))|(https?:\/\/[^\s]+)/g;
 
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
@@ -122,6 +135,11 @@ function formatInline(text: string, needle?: string): ReactNode[] {
   let counter = 0;
 
   while ((match = tokenRegex.exec(text)) !== null) {
+    // جلوگیری از مصرف بی‌پایان نخ اصلی مرورگر در متون پرتوکن
+    if (counter >= MAX_INLINE_TOKENS) {
+      break;
+    }
+
     if (match.index > lastIndex) {
       nodes.push(
         <React.Fragment key={`txt-${counter++}`}>
@@ -136,7 +154,7 @@ function formatInline(text: string, needle?: string): ReactNode[] {
       const inner = full.slice(2, -2);
       nodes.push(
         <SpoilerText key={`sp-${counter++}`}>
-          {formatInline(inner, needle)}
+          {formatInline(inner, needle, depth + 1)}
         </SpoilerText>
       );
     } else if (full.startsWith("`") && full.endsWith("`")) {
@@ -154,7 +172,7 @@ function formatInline(text: string, needle?: string): ReactNode[] {
       const inner = full.slice(len, -len);
       nodes.push(
         <strong key={`b-${counter++}`}>
-          {formatInline(inner, needle)}
+          {formatInline(inner, needle, depth + 1)}
         </strong>
       );
     } else if (
@@ -165,14 +183,14 @@ function formatInline(text: string, needle?: string): ReactNode[] {
       const inner = full.slice(len, -len);
       nodes.push(
         <em key={`i-${counter++}`}>
-          {formatInline(inner, needle)}
+          {formatInline(inner, needle, depth + 1)}
         </em>
       );
     } else if (full.startsWith("~~") && full.endsWith("~~")) {
       const inner = full.slice(2, -2);
       nodes.push(
         <del key={`del-${counter++}`}>
-          {formatInline(inner, needle)}
+          {formatInline(inner, needle, depth + 1)}
         </del>
       );
     } else if (full.startsWith("[") && full.includes("](") && full.endsWith(")")) {

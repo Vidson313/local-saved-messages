@@ -1,15 +1,16 @@
 import { randomUUID } from "crypto";
 import path from "path";
 import { readJsonSafe, writeJsonAtomic } from "./storage/atomic.ts";
-import type {
-  Chat,
-  CreateChatInput,
-  CreateFileInput,
-  Message,
-  PaginatedMessages,
-  PaginationOptions,
-  UpdateChatInput,
-  UpdateMessageInput
+import {
+  type Chat,
+  type CreateChatInput,
+  type CreateFileInput,
+  type Message,
+  type PaginatedMessages,
+  type PaginationOptions,
+  type UpdateChatInput,
+  type UpdateMessageInput,
+  MAX_MESSAGE_LENGTH
 } from "../types/store.ts";
 
 export type {
@@ -22,6 +23,8 @@ export type {
   CreateFileInput,
   UpdateMessageInput
 };
+
+export { MAX_MESSAGE_LENGTH };
 
 const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "messages.json");

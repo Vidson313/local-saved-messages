@@ -99,6 +99,16 @@ async function runUXTests() {
   assert.strictEqual(formatDuration(3605), "60:05");
   console.log("✓ تست ۵ با موفقیت پاس شد (محاسبه دقیق دقیقه و ثانیه).");
 
+  // تست ۶: مقاومت در برابر رشته‌های با براکت‌های مکرر و نامعتبر (ReDoS / Pathological input)
+  console.log("تست ۶: تست مقاومت در برابر ورودی‌های مخرب با براکت‌های مکرر...");
+  const pathologicalString = "[".repeat(200) + "invalid-link" + "]".repeat(200);
+  const startTime = Date.now();
+  const parsedLinks = parseMarkdownLinks(pathologicalString);
+  const elapsed = Date.now() - startTime;
+  assert.strictEqual(parsedLinks.length, 0);
+  assert.ok(elapsed < 100); // باید در کمتر از ۱۰۰ میلی‌ثانیه فورا پردازش شود
+  console.log(`✓ تست ۶ با موفقیت پاس شد (زمان پردازش: ${elapsed}ms).`);
+
   console.log("\n=== تمامی تست‌های تجربه کاربری (UX) با موفقیت ۱۰۰٪ پاس شدند ===");
 }
 

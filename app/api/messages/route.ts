@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { broadcast } from "@/lib/events";
-import { createTextMessage, deleteMessages, getMessages, getPaginatedMessages } from "@/lib/store";
+import {
+  MAX_MESSAGE_LENGTH,
+  createTextMessage,
+  deleteMessages,
+  getMessages,
+  getPaginatedMessages
+} from "@/lib/store";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads");
-const MAX_MESSAGE_LENGTH = 50000;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

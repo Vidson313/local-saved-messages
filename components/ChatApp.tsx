@@ -24,6 +24,36 @@ import { TagList } from "@/components/ui/TagBadge";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { MessageFormatter } from "@/components/ui/MessageFormatter";
 import { TelegramAudioPlayer } from "@/components/ui/AudioPlayer";
+import {
+  ArrowLeft,
+  Bookmark,
+  Camera,
+  Check,
+  CheckCircle2,
+  Copy,
+  Download,
+  FileText,
+  Forward,
+  Keyboard as KeyboardIcon,
+  Link2,
+  Lock,
+  Menu,
+  MoreVertical,
+  Paperclip,
+  Pencil,
+  Pin,
+  PinOff,
+  Plus,
+  Reply,
+  Save,
+  SaveOff,
+  Search,
+  Send,
+  Tag,
+  Trash2,
+  X,
+  type LucideIcon
+} from "lucide-react";
 
 type Chat = {
   id: string;
@@ -79,181 +109,74 @@ type IconName =
 
 const EMOJI_OPTIONS = ["💾", "📌", "📂", "🗂️", "📝", "💡", "🔖", "⭐", "🎵", "🖼️", "🎬", "📚", "🔧", "💼", "🏠", "🎮", "💰", "🎯", "❤️", "🚀"];
 
+function getLucideIcon(name: IconName): LucideIcon {
+  switch (name) {
+    case "attach":
+      return Paperclip;
+    case "copy":
+      return Copy;
+    case "delete":
+      return Trash2;
+    case "download":
+      return Download;
+    case "file":
+      return FileText;
+    case "saved":
+      return Bookmark;
+    case "search":
+      return Search;
+    case "send":
+      return Send;
+    case "menu":
+      return Menu;
+    case "dots":
+      return MoreVertical;
+    case "link":
+      return Link2;
+    case "pin":
+      return Pin;
+    case "unpin":
+      return PinOff;
+    case "save":
+      return Save;
+    case "unsave":
+      return SaveOff;
+    case "select":
+      return CheckCircle2;
+    case "close":
+      return X;
+    case "check":
+      return Check;
+    case "plus":
+      return Plus;
+    case "edit":
+      return Pencil;
+    case "camera":
+      return Camera;
+    case "back":
+      return ArrowLeft;
+    case "keyboard":
+      return KeyboardIcon;
+    case "lock":
+      return Lock;
+    case "forward":
+      return Forward;
+    case "reply":
+      return Reply;
+    case "tag":
+      return Tag;
+  }
+}
+
 function Icon({ name }: { name: IconName }) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    strokeWidth: 1.8,
-    viewBox: "0 0 24 24"
-  };
-
-  const paths: Record<IconName, ReactNode> = {
-    attach: <path d="M21 11.5 12.4 20a6 6 0 0 1-8.5-8.5l9-9a4 4 0 0 1 5.7 5.7l-9.1 9a2 2 0 0 1-2.8-2.8l8.2-8.2" />,
-    copy: (
-      <>
-        <rect x="8" y="8" width="11" height="11" rx="2" />
-        <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
-      </>
-    ),
-    delete: (
-      <>
-        <path d="M3 6h18" />
-        <path d="M8 6V4h8v2" />
-        <path d="m19 6-1 14H6L5 6" />
-      </>
-    ),
-    download: (
-      <>
-        <path d="M12 3v12" />
-        <path d="m7 10 5 5 5-5" />
-        <path d="M5 21h14" />
-      </>
-    ),
-    file: (
-      <>
-        <path d="M7 3h7l5 5v13H7z" />
-        <path d="M14 3v6h5" />
-      </>
-    ),
-    saved: (
-      <>
-        <path d="M6 4h12v17l-6-4-6 4z" />
-        <path d="M9 8h6" />
-      </>
-    ),
-    search: (
-      <>
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </>
-    ),
-    send: <path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" />,
-    menu: (
-      <>
-        <path d="M4 7h16" />
-        <path d="M4 12h16" />
-        <path d="M4 17h16" />
-      </>
-    ),
-    dots: (
-      <>
-        <circle cx="12" cy="5" r="1" />
-        <circle cx="12" cy="12" r="1" />
-        <circle cx="12" cy="19" r="1" />
-      </>
-    ),
-    link: (
-      <>
-        <path d="M10 13a5 5 0 0 0 7.1 0l2.1-2.1a5 5 0 1 0-7.1-7.1L10.9 5" />
-        <path d="M14 11a5 5 0 0 0-7.1 0l-2.1 2.1a5 5 0 1 0 7.1 7.1L13.1 19" />
-      </>
-    ),
-    pin: (
-      <>
-        <path d="M12 17v5" />
-        <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z" />
-      </>
-    ),
-    unpin: (
-      <>
-        <path d="M12 17v5" />
-        <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z" />
-        <line x1="3" y1="3" x2="21" y2="21" strokeWidth="2" />
-      </>
-    ),
-    save: (
-      <>
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-        <polyline points="17,21 17,13 7,13 7,21" />
-        <polyline points="7,3 7,8 15,8" />
-      </>
-    ),
-    unsave: (
-      <>
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-        <polyline points="17,21 17,13 7,13 7,21" />
-        <polyline points="7,3 7,8 15,8" />
-        <line x1="3" y1="3" x2="21" y2="21" strokeWidth="2" />
-      </>
-    ),
-    select: (
-      <>
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8 12l3 3 5-5" strokeWidth="2" />
-      </>
-    ),
-    close: (
-      <>
-        <path d="M18 6 6 18" />
-        <path d="m6 6 12 12" />
-      </>
-    ),
-    check: (
-      <>
-        <polyline points="20,6 9,17 4,12" strokeWidth="2" />
-      </>
-    ),
-    plus: (
-      <>
-        <path d="M12 5v14" />
-        <path d="M5 12h14" />
-      </>
-    ),
-    edit: (
-      <>
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-      </>
-    ),
-    camera: (
-      <>
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-      </>
-    ),
-    back: (
-      <>
-        <path d="m15 18-6-6 6-6" />
-      </>
-    ),
-    keyboard: (
-      <>
-        <rect x="2" y="4" width="20" height="16" rx="2" />
-        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
-      </>
-    ),
-    lock: (
-      <>
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </>
-    ),
-    forward: (
-      <>
-        <path d="m15 17 5-5-5-5" />
-        <path d="M4 18v-2a4 4 0 0 1 4-4h12" />
-      </>
-    ),
-    reply: (
-      <>
-        <path d="m9 17-5-5 5-5" />
-        <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
-      </>
-    ),
-    tag: (
-      <>
-        <path d="M20.6 9.6l-8.2-8.2a1 1 0 0 0-.7-.3H4a1 1 0 0 0-1 1v7.7a1 1 0 0 0 .3.7l8.2 8.2a1 1 0 0 0 1.4 0l8.7-8.7a1 1 0 0 0 0-1.4z" />
-        <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
-      </>
-    )
-  };
-
+  const LucideComponent = getLucideIcon(name);
   return (
-    <svg aria-hidden="true" className="tg-icon" {...common}>
-      {paths[name]}
-    </svg>
+    <LucideComponent
+      aria-hidden="true"
+      className="tg-icon"
+      size={20}
+      strokeWidth={1.8}
+    />
   );
 }
 

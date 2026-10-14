@@ -27,13 +27,9 @@ body:
     id: definition-of-done
     attributes:
       label: Definition of Done
-      description: Checklist for completion of this feature.
+      description: Checklist for completion of this feature (to be tracked by maintainers).
       options:
         - label: Implementation completed and adheres to project conventions
-          required: true
         - label: Tests written or updated (`npm test` passes)
-          required: true
         - label: Production build succeeds (`npm run build`)
-          required: true
         - label: Tested manually across desktop and mobile viewports
-          required: false

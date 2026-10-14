@@ -50,3 +50,6 @@ export type CreateFileInput = {
 };
 
 export type UpdateMessageInput = Partial<Pick<Message, "pinned" | "saved" | "tags" | "content">>;
+
+export const MAX_MESSAGE_LENGTH = 50000;
+

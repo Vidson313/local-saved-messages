@@ -22,6 +22,8 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { TagEditor } from "@/components/ui/TagEditor";
 import { TagList } from "@/components/ui/TagBadge";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { MessageFormatter } from "@/components/ui/MessageFormatter";
+import { TelegramAudioPlayer } from "@/components/ui/AudioPlayer";
 
 type Chat = {
   id: string;
@@ -316,7 +318,11 @@ function linkify(text: string) {
 }
 
 function isMedia(message: Msg) {
-  return Boolean(message.mimeType?.startsWith("image/") || message.mimeType?.startsWith("video/"));
+  return Boolean(
+    message.mimeType?.startsWith("image/") ||
+    message.mimeType?.startsWith("video/") ||
+    message.mimeType?.startsWith("audio/")
+  );
 }
 
 function FilePreview({ message }: { message: Msg }) {
@@ -332,9 +338,12 @@ function FilePreview({ message }: { message: Msg }) {
 
   if (mime.startsWith("audio/")) {
     return (
-      <div className="tg-audio">
-        <audio src={message.content} controls />
-      </div>
+      <TelegramAudioPlayer
+        src={message.content}
+        fileName={message.fileName}
+        fileSize={message.fileSize}
+        downloadUrl={getDownloadUrl(message.content, true)}
+      />
     );
   }
 
@@ -440,6 +449,11 @@ export default function ChatApp() {
   const [tagEditMessageId, setTagEditMessageId] = useState<string | null>(null);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(80);
+
+  useEffect(() => {
+    setVisibleCount(80);
+  }, [activeChatId]);
 
   const appLock = useAppLock();
   useAppFontSize();
@@ -545,6 +559,13 @@ export default function ChatApp() {
 
     return result;
   }, [chatMessages, query, filterTag]);
+
+  const visibleMessages = useMemo(() => {
+    if (filteredMessages.length <= visibleCount) return filteredMessages;
+    return filteredMessages.slice(filteredMessages.length - visibleCount);
+  }, [filteredMessages, visibleCount]);
+
+  const hasOlderMessages = filteredMessages.length > visibleCount;
 
   const chatTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -1114,6 +1135,7 @@ export default function ChatApp() {
             <Icon name="search" />
             <input
               ref={searchInputRef}
+              dir="auto"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search (press /)"
@@ -1355,8 +1377,15 @@ export default function ChatApp() {
         {/* Pinned message bar */}
         {pinnedMessages.length > 0 && !selectMode && (
           <div className="tg-pinned-bar" onClick={() => {
-            const pinnedEl = document.querySelector(`[data-message-id="${pinnedMessages[pinnedMessages.length - 1].id}"]`);
-            pinnedEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+            const target = pinnedMessages[pinnedMessages.length - 1];
+            const targetIdx = filteredMessages.findIndex((m) => m.id === target.id);
+            if (targetIdx !== -1 && filteredMessages.length - targetIdx > visibleCount) {
+              setVisibleCount(filteredMessages.length - targetIdx + 20);
+            }
+            requestAnimationFrame(() => {
+              const pinnedEl = document.querySelector(`[data-message-id="${target.id}"]`);
+              pinnedEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
           }}>
             <span className="tg-pinned-icon">
               <Icon name="pin" />
@@ -1414,8 +1443,21 @@ export default function ChatApp() {
             </div>
           )}
 
-          {filteredMessages.map((message, index) => {
-            const previous = filteredMessages[index - 1];
+          {hasOlderMessages && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}>
+              <button
+                type="button"
+                className="tg-btn-secondary"
+                onClick={() => setVisibleCount((prev) => prev + 60)}
+                style={{ fontSize: "12px", padding: "5px 14px", borderRadius: "14px" }}
+              >
+                Load earlier messages ({filteredMessages.length - visibleCount} more)
+              </button>
+            </div>
+          )}
+
+          {visibleMessages.map((message, index) => {
+            const previous = visibleMessages[index - 1];
             const showDate = !previous || formatDay(previous.createdAt) !== formatDay(message.createdAt);
             const isSelected = selectedIds.has(message.id);
             const searchNeedle = query.trim().toLowerCase();
@@ -1457,6 +1499,7 @@ export default function ChatApp() {
                       <div className="tg-edit-inline">
                         <textarea
                           className="tg-edit-textarea"
+                          dir="auto"
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
                           onKeyDown={(e) => {
@@ -1479,11 +1522,11 @@ export default function ChatApp() {
                         </div>
                       </div>
                     ) : message.type === "TEXT" ? (
-                      <p className="tg-message-text">{searchNeedle ? highlightText(message.content, searchNeedle) : linkify(message.content)}</p>
+                      <MessageFormatter content={message.content} searchNeedle={searchNeedle} />
                     ) : (
                       <div className="tg-file-message">
                         <div className="tg-file-heading">
-                          <a className="tg-file-name" href={getDownloadUrl(message.content, true)} download={message.fileName || undefined}>
+                          <a className="tg-file-name" dir="auto" href={getDownloadUrl(message.content, true)} download={message.fileName || undefined}>
                             {message.fileName || "Download file"}
                           </a>
                           <span className="tg-file-size">{formatBytes(message.fileSize)}</span>
@@ -1651,6 +1694,7 @@ export default function ChatApp() {
           </button>
           <input ref={fileInputRef} type="file" multiple hidden onChange={onFileChange} aria-label="File input" />
           <textarea
+            dir="auto"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onComposerKeyDown}
@@ -1711,6 +1755,11 @@ export default function ChatApp() {
                 <a key={message.id} href={getDownloadUrl(message.content, true)} className="tg-media-thumb" download={message.fileName || undefined}>
                   {message.mimeType?.startsWith("video/") ? (
                     <video src={message.content} muted />
+                  ) : message.mimeType?.startsWith("audio/") ? (
+                    <div className="tg-media-audio-thumb" title={message.fileName || "Audio"}>
+                      <Icon name="file" />
+                      <span className="tg-media-audio-name">{message.fileName || "Audio"}</span>
+                    </div>
                   ) : (
                     <img src={message.content} alt={message.fileName || "media"} loading="lazy" />
                   )}
@@ -1805,6 +1854,7 @@ export default function ChatApp() {
               </div>
               <input
                 className="tg-modal-input"
+                dir="auto"
                 value={newChatName}
                 onChange={(e) => setNewChatName(e.target.value)}
                 placeholder="Chat name"
@@ -1937,6 +1987,7 @@ export default function ChatApp() {
               </div>
               <input
                 className="tg-modal-input"
+                dir="auto"
                 value={editChatName}
                 onChange={(e) => setEditChatName(e.target.value)}
                 placeholder="Chat name"

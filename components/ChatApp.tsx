@@ -221,6 +221,22 @@ function mergeById(messages: Msg[]) {
   return [...map.values()].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
 }
 
+function mergeChatsById(chats: Chat[]): Chat[] {
+  const map = new Map<string, Chat>();
+  for (const chat of chats) {
+    map.set(chat.id, {
+      ...chat,
+      avatar: chat.avatar ?? null,
+      avatarType: chat.avatarType ?? null
+    });
+  }
+  return [...map.values()].sort((a, b) => {
+    if (a.id === "default") return -1;
+    if (b.id === "default") return 1;
+    return +new Date(a.createdAt) - +new Date(b.createdAt);
+  });
+}
+
 function extractLinks(text: string) {
   return text.match(/https?:\/\/[^\s]+/g) || [];
 }
@@ -408,7 +424,7 @@ export default function ChatApp() {
       const res = await fetch("/api/chats", { cache: "no-store" });
       if (!res.ok) throw new Error("Could not load chats");
       const data = (await res.json()) as Chat[];
-      setChats(data);
+      setChats(mergeChatsById(data));
     } catch {
       toast.error("Chats could not be refreshed.");
     }
@@ -418,8 +434,8 @@ export default function ChatApp() {
     if (data.type === "created") setMessages((prev) => mergeById([...prev, data.message as Msg]));
     if (data.type === "deleted") setMessages((prev) => prev.filter((message) => message.id !== data.id));
     if (data.type === "updated") setMessages((prev) => mergeById([...prev.filter((m) => m.id !== (data.message as Msg).id), data.message as Msg]));
-    if (data.type === "chat-created") setChats((prev) => [...prev, data.chat as Chat]);
-    if (data.type === "chat-updated") setChats((prev) => prev.map((c) => c.id === (data.chat as Chat).id ? (data.chat as Chat) : c));
+    if (data.type === "chat-created") setChats((prev) => mergeChatsById([...prev, data.chat as Chat]));
+    if (data.type === "chat-updated") setChats((prev) => mergeChatsById(prev.map((c) => c.id === (data.chat as Chat).id ? (data.chat as Chat) : c)));
     if (data.type === "chat-deleted") {
       setChats((prev) => prev.filter((c) => c.id !== data.chatId));
       setMessages((prev) => prev.filter((m) => m.chatId !== data.chatId));
@@ -817,7 +833,7 @@ export default function ChatApp() {
       });
       if (!res.ok) throw new Error("Create failed");
       const chat = (await res.json()) as Chat;
-      setChats((prev) => [...prev, chat]);
+      setChats((prev) => mergeChatsById([...prev, chat]));
       setActiveChatId(chat.id);
       setFilterTag(null);
       setDesktopHomeView(false);
@@ -843,7 +859,7 @@ export default function ChatApp() {
       });
       if (!res.ok) throw new Error("Update failed");
       const chat = (await res.json()) as Chat;
-      setChats((prev) => prev.map((c) => c.id === chat.id ? chat : c));
+      setChats((prev) => mergeChatsById(prev.map((c) => c.id === chat.id ? chat : c)));
       setEditingChatId(null);
     } catch {
       toast.error("Failed to update chat.");
@@ -1083,10 +1099,11 @@ export default function ChatApp() {
             const isActive = chat.id === activeChatId;
 
             return (
-              <button
+              <div
                 key={chat.id}
                 className={`tg-chat-card tg-chat-card-anim ${isActive ? "tg-chat-card-active" : ""}`}
-                role="option"
+                role="button"
+                tabIndex={0}
                 aria-selected={isActive}
                 onClick={() => {
                   setActiveChatId(chat.id);
@@ -1095,6 +1112,17 @@ export default function ChatApp() {
                   setMobileView("chat");
                   setQuery("");
                   exitSelectMode();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setActiveChatId(chat.id);
+                    setFilterTag(null);
+                    setDesktopHomeView(false);
+                    setMobileView("chat");
+                    setQuery("");
+                    exitSelectMode();
+                  }
                 }}
                 onContextMenu={(e) => handleChatContextMenu(e, chat.id)}
               >
@@ -1121,7 +1149,7 @@ export default function ChatApp() {
                 >
                   <Icon name="dots" />
                 </button>
-              </button>
+              </div>
             );
           })}
 

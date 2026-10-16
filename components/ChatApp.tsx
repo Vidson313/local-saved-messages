@@ -1092,7 +1092,7 @@ export default function ChatApp() {
           </label>
         </div>
 
-        <div className="tg-chat-list" role="listbox" aria-label="Chats">
+        <div className="tg-chat-list" aria-label="Chats">
           {initialLoading ? <ChatListSkeleton /> : chats.map((chat) => {
             const lastMsg = getChatLastMessage(chat.id);
             const count = getChatMessageCount(chat.id);
@@ -1104,7 +1104,7 @@ export default function ChatApp() {
                 className={`tg-chat-card tg-chat-card-anim ${isActive ? "tg-chat-card-active" : ""}`}
                 role="button"
                 tabIndex={0}
-                aria-selected={isActive}
+                aria-pressed={isActive}
                 onClick={() => {
                   setActiveChatId(chat.id);
                   setFilterTag(null);
@@ -1114,6 +1114,7 @@ export default function ChatApp() {
                   exitSelectMode();
                 }}
                 onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     setActiveChatId(chat.id);
@@ -1145,6 +1146,9 @@ export default function ChatApp() {
                     e.stopPropagation();
                     const rect = e.currentTarget.getBoundingClientRect();
                     openChatContextMenuAt(chat.id, Math.max(8, rect.left - 140), rect.bottom + 6);
+                  }}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
                   }}
                 >
                   <Icon name="dots" />

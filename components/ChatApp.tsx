@@ -221,6 +221,11 @@ function mergeById(messages: Msg[]) {
   return [...map.values()].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
 }
 
+/**
+ * Deduplicates chats by ID, keeping the last occurrence and normalizing missing avatars.
+ * @param chats - Chat snapshots from fetch responses or realtime events.
+ * @returns Chats with the default chat first, then sorted by ascending creation time.
+ */
 function mergeChatsById(chats: Chat[]): Chat[] {
   const map = new Map<string, Chat>();
   for (const chat of chats) {
@@ -339,6 +344,7 @@ type ChatContextMenuState = {
   chatId: string | null;
 };
 
+/** Renders the chat workspace and coordinates local interactions with realtime updates. */
 export default function ChatApp() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -419,6 +425,7 @@ export default function ChatApp() {
     }
   }
 
+  /** Refreshes chats with deduplication and stable ordering, showing a toast on failure. */
   async function syncChats() {
     try {
       const res = await fetch("/api/chats", { cache: "no-store" });
@@ -430,6 +437,7 @@ export default function ChatApp() {
     }
   }
 
+  /** Applies message and chat events, deduplicating chat snapshots and handling deleted active chats. */
   const handleRealtimeEvent = useCallback((data: Record<string, unknown>) => {
     if (data.type === "created") setMessages((prev) => mergeById([...prev, data.message as Msg]));
     if (data.type === "deleted") setMessages((prev) => prev.filter((message) => message.id !== data.id));
@@ -822,6 +830,7 @@ export default function ChatApp() {
 
   // ── Chat actions ──
 
+  /** Creates a named chat, merges the response with realtime state, and opens the new chat. */
   async function createNewChat() {
     const name = newChatName.trim();
     if (!name) return;
@@ -847,6 +856,7 @@ export default function ChatApp() {
     }
   }
 
+  /** Saves the edited chat details and normalizes the updated list, keeping the editor open on failure. */
   async function saveEditChat() {
     if (!editingChatId) return;
     const name = editChatName.trim();

@@ -1112,42 +1112,46 @@ export default function ChatApp() {
               <div
                 key={chat.id}
                 className={`tg-chat-card tg-chat-card-anim ${isActive ? "tg-chat-card-active" : ""}`}
-                role="button"
-                tabIndex={0}
-                aria-pressed={isActive}
-                onClick={() => {
-                  setActiveChatId(chat.id);
-                  setFilterTag(null);
-                  setDesktopHomeView(false);
-                  setMobileView("chat");
-                  setQuery("");
-                  exitSelectMode();
-                }}
-                onKeyDown={(e) => {
-                  if (e.target !== e.currentTarget) return;
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
+                onContextMenu={(e) => handleChatContextMenu(e, chat.id)}
+              >
+                <div
+                  className="tg-chat-card-control"
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isActive}
+                  onClick={() => {
                     setActiveChatId(chat.id);
                     setFilterTag(null);
                     setDesktopHomeView(false);
                     setMobileView("chat");
                     setQuery("");
                     exitSelectMode();
-                  }
-                }}
-                onContextMenu={(e) => handleChatContextMenu(e, chat.id)}
-              >
-                <ChatAvatar chat={chat} size="large" />
-                <span className="tg-chat-card-copy">
-                  <span className="tg-chat-card-title">{chat.name}</span>
-                  <span className="tg-chat-card-subtitle">
-                    {lastMsg ? (lastMsg.type === "TEXT" ? lastMsg.content.slice(0, 38) : lastMsg.fileName) : "No messages yet"}
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveChatId(chat.id);
+                      setFilterTag(null);
+                      setDesktopHomeView(false);
+                      setMobileView("chat");
+                      setQuery("");
+                      exitSelectMode();
+                    }
+                  }}
+                >
+                  <ChatAvatar chat={chat} size="large" />
+                  <span className="tg-chat-card-copy">
+                    <span className="tg-chat-card-title">{chat.name}</span>
+                    <span className="tg-chat-card-subtitle">
+                      {lastMsg ? (lastMsg.type === "TEXT" ? lastMsg.content.slice(0, 38) : lastMsg.fileName) : "No messages yet"}
+                    </span>
                   </span>
-                </span>
-                <span className="tg-chat-card-meta">
-                  <small>{lastMsg ? formatTime(lastMsg.createdAt) : ""}</small>
-                  <em>{count}</em>
-                </span>
+                  <span className="tg-chat-card-meta">
+                    <small>{lastMsg ? formatTime(lastMsg.createdAt) : ""}</small>
+                    <em>{count}</em>
+                  </span>
+                </div>
                 <button
                   type="button"
                   className="tg-chat-actions-button"

@@ -238,15 +238,26 @@ button {
 
 .tg-chat-card {
   width: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 0;
+  border-radius: 12px;
+  text-align: left;
+  user-select: none;
+}
+
+/* کنترل اصلی کارت — بدون فرزند تعاملی (طبق قرارداد دکمه در W3C) */
+.tg-chat-card-control {
+  flex: 1;
+  min-width: 0;
   padding: 10px 10px 10px 12px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 0;
   border-radius: 12px;
-  text-align: left;
   cursor: pointer;
-  user-select: none;
 }
 
 .tg-chat-card-active {
@@ -329,10 +340,20 @@ button {
   display: none;
   width: 30px;
   height: 30px;
+  margin-right: 10px;
+  flex: 0 0 auto;
   border: 0;
   border-radius: 999px;
   color: inherit;
   place-items: center;
+  cursor: pointer;
+  background: transparent;
+}
+
+/* نمایش دکمه سه‌نقطه هنگام هاور یا فوکوس کارت */
+.tg-chat-card:hover .tg-chat-actions-button,
+.tg-chat-card:focus-within .tg-chat-actions-button {
+  display: inline-grid;
 }
 
 .tg-mobile-back {
@@ -1069,6 +1090,8 @@ button {
 
 .tg-chat-card-new {
   opacity: 0.7;
+  padding: 10px 10px 10px 12px;
+  gap: 12px;
   transition: opacity 0.15s ease;
 }
 
@@ -1295,6 +1318,11 @@ button {
   }
 
   .tg-chat-actions-button {
+    display: inline-grid;
+  }
+
+  .tg-chat-card:hover .tg-chat-actions-button,
+  .tg-chat-card:focus-within .tg-chat-actions-button {
     display: inline-grid;
   }
 
@@ -2124,7 +2152,7 @@ button {
   border-radius: 8px;
 }
 
-.tg-chat-card:focus-visible {
+.tg-chat-card-control:focus-visible {
   outline: 2px solid var(--tg-blue);
   outline-offset: -2px;
 }

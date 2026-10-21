@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Persian is the primary language. The file name is what a Persian device
+  resolves to, and it is also the default for users whose system is Persian.
+-->
+<resources>
+    <string name="app_name">پیام‌های ذخیره‌شده</string>
+
+    <!-- Navigation -->
+    <string name="nav_folders">پوشه‌ها</string>
+    <string name="nav_media">رسانه‌ها</string>
+    <string name="nav_search">جستجو</string>
+    <string name="nav_settings">تنظیمات</string>
+
+    <!-- Folders screen -->
+    <string name="folders_title">پوشه‌ها</string>
+    <string name="folders_new">پوشهٔ جدید</string>
+    <string name="folders_empty_title">هنوز پوشه‌ای نیست</string>
+    <string name="folders_empty_body">برای نگهداری فایل‌ها و یادداشت‌ها، اولین پوشه را بسازید.</string>
+    <string name="folders_item_count">%1$s مورد</string>
+    <string name="folders_untitled">بدون عنوان</string>
+
+    <!-- Folder editor -->
+    <string name="folder_create_title">پوشهٔ جدید</string>
+    <string name="folder_edit_title">ویرایش پوشه</string>
+    <string name="folder_name_label">نام پوشه</string>
+    <string name="folder_icon_label">آیکون</string>
+    <string name="folder_vault_label">گاوصندوق امن</string>
+    <string name="folder_vault_description">برای ورود، قفل گوشی باز می‌شود. این یک دروازهٔ حریم خصوصی است، نه رمزنگاری.</string>
+    <string name="folder_delete_title">حذف پوشه؟</string>
+    <string name="folder_delete_body">«%1$s» و همهٔ موارد داخل آن حذف می‌شوند.</string>
+    <string name="action_create">ساختن</string>
+    <string name="action_save">ذخیره</string>
+    <string name="action_cancel">انصراف</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_rename">تغییر نام</string>
+    <string name="action_share">اشتراک‌گذاری</string>
+    <string name="action_undo">بازگردانی</string>
+
+    <!-- Share target screen -->
+    <string name="share_title">ذخیره در پیام‌های ذخیره‌شده</string>
+    <string name="share_note_label">یادداشت (اختیاری)</string>
+    <string name="share_note_hint">این یادداشت را بنویسید…</string>
+    <string name="share_destination_label">ذخیره در</string>
+    <string name="share_new_folder">پوشهٔ جدید</string>
+    <string name="share_action">ذخیره</string>
+    <string name="share_copying">در حال کپی… %1$d%%</string>
+    <string name="share_copy_failed">خواندن فایل ممکن نشد</string>
+    <string name="share_nothing_shared">چیزی برای اشتراک‌گذاری دریافت نشد</string>
+    <string name="share_cloud_file_title">این فایل در فضای ابری تلگرام است</string>
+    <string name="share_cloud_file_body">برای ذخیرهٔ فایل، ابتدا آن را در تلگرام دانلود کنید و دوباره به اشتراک بگذارید. لینک ذخیره شد.</string>
+    <string name="share_open_telegram">باز کردن تلگرام</string>
+    <string name="share_saved">در «%1$s» ذخیره شد</string>
+    <string name="share_view">مشاهده</string>
+    <string name="share_partial_failure">%1$s مورد ذخیره نشد</string>
+
+    <!-- Entries screen -->
+    <string name="entries_empty_title">این پوشه خالی است</string>
+    <string name="entries_empty_body">از هر برنامه‌ای فایلی را به اشتراک بگذارید تا اینجا ذخیره شود.</string>
+    <string name="entries_pinned">سنجاق‌شده</string>
+    <string name="entries_pinned_count">سنجاق‌شده · %1$s مورد</string>
+    <string name="entries_filter_all">همه</string>
+    <string name="entries_filter_image">تصویر</string>
+    <string name="entries_filter_video">ویدیو</string>
+    <string name="entries_filter_audio">صدا</string>
+    <string name="entries_filter_voice">وویس</string>
+    <string name="entries_filter_document">سند</string>
+    <string name="entries_filter_note">یادداشت</string>
+    <string name="entries_sort_newest">جدیدترین</string>
+    <string name="entries_sort_oldest">قدیمی‌ترین</string>
+    <string name="entries_sort_name">نام</string>
+    <string name="entries_record_voice">ضبط وویس</string>
+    <string name="entries_recording">در حال ضبط…</string>
+    <string name="entries_stop_recording">پایان ضبط</string>
+    <string name="entries_record_permission">برای ضبط، به میکروفن دسترسی بدهید.</string>
+
+    <!-- Entry detail -->
+    <string name="detail_note_label">یادداشت</string>
+    <string name="detail_metadata">%1$s · %2$s · %3$s</string>
+    <string name="detail_no_preview">پیش‌نمایشی برای این نوع فایل وجود ندارد</string>
+    <string name="detail_open_with">باز کردن با برنامهٔ دیگر</string>
+    <string name="detail_pin">سنجاق‌کردن</string>
+    <string name="detail_unpin">برداشتن سنجاق</string>
+    <string name="detail_tags">برچسب‌ها</string>
+    <string name="detail_move">انتقال به پوشه</string>
+    <string name="detail_edit_note">ویرایش یادداشت</string>
+    <string name="detail_deleted">حذف شد</string>
+
+    <!-- Search -->
+    <string name="search_title">جستجو</string>
+    <string name="search_hint">جستجو در یادداشت‌ها و نام فایل‌ها…</string>
+    <string name="search_results_count">%1$s نتیجه</string>
+    <string name="search_empty_title">نتیجه‌ای پیدا نشد</string>
+    <string name="search_empty_body">عبارت دیگری را امتحان کنید.</string>
+    <string name="search_scope_all">در همهٔ پوشه‌ها</string>
+
+    <!-- Media -->
+    <string name="media_title">رسانه‌ها</string>
+    <string name="media_empty_title">رسانه‌ای نیست</string>
+    <string name="media_empty_body">تصویر و ویدیویی ذخیره نشده است.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">تنظیمات</string>
+    <string name="settings_storage">حافظهٔ مصرفی</string>
+    <string name="settings_storage_used">%1$s مصرف‌شده</string>
+    <string name="settings_storage_free">%1$s فضای در دسترس</string>
+    <string name="settings_storage_documents">اسناد و فایل‌ها</string>
+    <string name="settings_storage_images">تصاویر</string>
+    <string name="settings_storage_video">ویدیو</string>
+    <string name="settings_storage_audio">صدا و وویس</string>
+    <string name="settings_storage_notes">یادداشت‌ها</string>
+    <string name="settings_appearance">ظاهر برنامه</string>
+    <string name="settings_theme">پوسته</string>
+    <string name="settings_theme_system">سیستم</string>
+    <string name="settings_theme_light">روشن</string>
+    <string name="settings_theme_dark">تاریک</string>
+    <string name="settings_language">زبان</string>
+    <string name="settings_security">امنیت</string>
+    <string name="settings_device_lock">قفل با اثر انگشت یا چهره</string>
+    <string name="settings_device_lock_description">هنگام باز شدن برنامه، قفل گوشی خواسته می‌شود.</string>
+    <string name="settings_screenshot">جلوگیری از اسکرین‌شات</string>
+    <string name="settings_screenshot_description">پنهان‌کردن صفحه در برنامه‌های اخیر.</string>
+    <string name="settings_backup">پشتیبان‌گیری</string>
+    <string name="settings_export">برون‌ریزی کل آرشیو</string>
+    <string name="settings_export_description">همهٔ پوشه‌ها و فایل‌ها در یک فایل ZIP.</string>
+    <string name="settings_import">درون‌ریزی از پشتیبان</string>
+    <string name="settings_import_description">بازگرداندن ساختار پوشه‌ها و فایل‌ها.</string>
+    <string name="settings_last_export">آخرین برون‌ریزی: %1$s</string>
+    <string name="settings_never">هرگز</string>
+    <string name="settings_about">دربارهٔ برنامه</string>
+    <string name="settings_version">نسخه %1$s</string>
+    <string name="settings_privacy_note">این برنامه فاقد دسترسی به اینترنت است. هیچ داده‌ای جمع‌آوری یا ارسال نمی‌شود و همهٔ فایل‌ها فقط روی همین دستگاه می‌مانند.</string>
+    <string name="settings_report_problem">گزارش مشکل</string>
+    <string name="settings_report_problem_description">ساخت فایل گزارش و فرستادن آن با اشتراک‌گذاری.</string>
+
+    <!-- Vault -->
+    <string name="vault_unlock_title">گاوصندوق امن</string>
+    <string name="vault_unlock_body">برای دیدن محتوا، قفل گوشی را باز کنید.</string>
+    <string name="vault_unlock_action">باز کردن قفل</string>
+    <string name="vault_no_device_lock">گوشی شما قفل امنیتی ندارد. برای استفاده از گاوصندوق، ابتدا یک قفل (اثر انگشت، چهره یا رمز) تنظیم کنید.</string>
+    <string name="vault_open_settings">تنظیم قفل دستگاه</string>
+    <string name="vault_unlock_failed">احراز هویت ناموفق بود</string>
+
+    <!-- Generic -->
+    <string name="error_generic">خطایی رخ داد</string>
+    <string name="error_storage_full">حافظهٔ دستگاه پر است</string>
+    <string name="error_file_too_large">حجم فایل بیش از حد مجاز است</string>
+    <string name="error_source_unavailable">فایل منبع در دسترس نیست</string>
+    <string name="error_source_unavailable_body">شاید حذف یا جابه‌جا شده باشد.</string>
+    <string name="undo_delete">«%1$s» حذف شد</string>
+    <string name="size_bytes">%1$s بایت</string>
+    <string name="time_yesterday">دیروز</string>
+</resources>

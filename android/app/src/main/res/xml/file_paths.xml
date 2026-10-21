@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Only the permanent attachment store is exposed to other apps. -->
+    <files-path
+        name="attachments"
+        path="attachments/" />
+</paths>

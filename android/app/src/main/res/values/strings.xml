@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English is the fallback locale (values/). Persian lives in values-fa/ and is
+  what a Persian device resolves to. Keeping English complete means a device in
+  any other locale shows readable text rather than a missing-key placeholder.
+-->
+<resources>
+    <string name="app_name">Saved Messages</string>
+
+    <!-- Navigation -->
+    <string name="nav_folders">Folders</string>
+    <string name="nav_media">Media</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Folders screen -->
+    <string name="folders_title">Folders</string>
+    <string name="folders_new">New folder</string>
+    <string name="folders_empty_title">No folders yet</string>
+    <string name="folders_empty_body">Create your first folder to start keeping files and notes.</string>
+    <string name="folders_item_count">%1$s items</string>
+    <string name="folders_untitled">Untitled</string>
+
+    <!-- Folder editor -->
+    <string name="folder_create_title">New folder</string>
+    <string name="folder_edit_title">Edit folder</string>
+    <string name="folder_name_label">Folder name</string>
+    <string name="folder_icon_label">Icon</string>
+    <string name="folder_vault_label">Secure vault</string>
+    <string name="folder_vault_description">Opening it asks for your device lock. This is a privacy gate, not encryption.</string>
+    <string name="folder_delete_title">Delete folder?</string>
+    <string name="folder_delete_body">“%1$s” and everything inside it will be deleted.</string>
+    <string name="action_create">Create</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_share">Share</string>
+    <string name="action_undo">Undo</string>
+
+    <!-- Share target screen -->
+    <string name="share_title">Save to Saved Messages</string>
+    <string name="share_note_label">Note (optional)</string>
+    <string name="share_note_hint">Write a note…</string>
+    <string name="share_destination_label">Save to</string>
+    <string name="share_new_folder">New folder</string>
+    <string name="share_action">Save</string>
+    <string name="share_copying">Copying… %1$d%%</string>
+    <string name="share_copy_failed">That file could not be read</string>
+    <string name="share_nothing_shared">Nothing was shared</string>
+    <string name="share_cloud_file_title">This file is still in Telegram’s cloud</string>
+    <string name="share_cloud_file_body">Download it in Telegram first, then share it again. The link was saved.</string>
+    <string name="share_open_telegram">Open Telegram</string>
+    <string name="share_saved">Saved to “%1$s”</string>
+    <string name="share_view">View</string>
+    <string name="share_partial_failure">%1$s items could not be saved</string>
+
+    <!-- Entries screen -->
+    <string name="entries_empty_title">This folder is empty</string>
+    <string name="entries_empty_body">Share a file from any app to save it here.</string>
+    <string name="entries_pinned">Pinned</string>
+    <string name="entries_pinned_count">Pinned · %1$s items</string>
+    <string name="entries_filter_all">All</string>
+    <string name="entries_filter_image">Images</string>
+    <string name="entries_filter_video">Video</string>
+    <string name="entries_filter_audio">Audio</string>
+    <string name="entries_filter_voice">Voice</string>
+    <string name="entries_filter_document">Documents</string>
+    <string name="entries_filter_note">Notes</string>
+    <string name="entries_sort_newest">Newest</string>
+    <string name="entries_sort_oldest">Oldest</string>
+    <string name="entries_sort_name">Name</string>
+    <string name="entries_record_voice">Record voice note</string>
+    <string name="entries_recording">Recording…</string>
+    <string name="entries_stop_recording">Stop recording</string>
+    <string name="entries_record_permission">Allow microphone access to record.</string>
+
+    <!-- Entry detail -->
+    <string name="detail_note_label">Note</string>
+    <string name="detail_metadata">%1$s · %2$s · %3$s</string>
+    <string name="detail_no_preview">No preview available for this file type</string>
+    <string name="detail_open_with">Open with another app</string>
+    <string name="detail_pin">Pin</string>
+    <string name="detail_unpin">Unpin</string>
+    <string name="detail_tags">Tags</string>
+    <string name="detail_move">Move to folder</string>
+    <string name="detail_edit_note">Edit note</string>
+    <string name="detail_deleted">Deleted</string>
+
+    <!-- Search -->
+    <string name="search_title">Search</string>
+    <string name="search_hint">Search notes and file names…</string>
+    <string name="search_results_count">%1$s results</string>
+    <string name="search_empty_title">No results</string>
+    <string name="search_empty_body">Try a different phrase.</string>
+    <string name="search_scope_all">Across all folders</string>
+
+    <!-- Media -->
+    <string name="media_title">Media</string>
+    <string name="media_empty_title">No media</string>
+    <string name="media_empty_body">No images or videos saved yet.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_storage">Storage used</string>
+    <string name="settings_storage_used">%1$s used</string>
+    <string name="settings_storage_free">%1$s available</string>
+    <string name="settings_storage_documents">Documents and files</string>
+    <string name="settings_storage_images">Images</string>
+    <string name="settings_storage_video">Video</string>
+    <string name="settings_storage_audio">Audio and voice</string>
+    <string name="settings_storage_notes">Notes</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_device_lock">Lock with fingerprint or face</string>
+    <string name="settings_device_lock_description">Ask for the device lock when the app opens.</string>
+    <string name="settings_screenshot">Block screenshots</string>
+    <string name="settings_screenshot_description">Hide the app in the recent-apps switcher.</string>
+    <string name="settings_backup">Backup</string>
+    <string name="settings_export">Export the whole archive</string>
+    <string name="settings_export_description">Every folder and file in one ZIP.</string>
+    <string name="settings_import">Import from a backup</string>
+    <string name="settings_import_description">Restore the folder structure and files.</string>
+    <string name="settings_last_export">Last export: %1$s</string>
+    <string name="settings_never">Never</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_privacy_note">This app has no internet access. No data is collected or transmitted, and every file stays on this device.</string>
+    <string name="settings_report_problem">Report a problem</string>
+    <string name="settings_report_problem_description">Build a log file and share it with the developer.</string>
+
+    <!-- Vault -->
+    <string name="vault_unlock_title">Secure vault</string>
+    <string name="vault_unlock_body">Unlock your device to view the contents.</string>
+    <string name="vault_unlock_action">Unlock</string>
+    <string name="vault_no_device_lock">This device has no lock set. Set up a fingerprint, face unlock or PIN first to use the vault.</string>
+    <string name="vault_open_settings">Set up device lock</string>
+    <string name="vault_unlock_failed">Authentication failed</string>
+
+    <!-- Generic -->
+    <string name="error_generic">Something went wrong</string>
+    <string name="error_storage_full">The device is out of storage</string>
+    <string name="error_file_too_large">That file is too large</string>
+    <string name="error_source_unavailable">The source file is unavailable</string>
+    <string name="error_source_unavailable_body">It may have been moved or deleted.</string>
+    <string name="undo_delete">“%1$s” deleted</string>
+    <string name="size_bytes">%1$s bytes</string>
+    <string name="time_yesterday">Yesterday</string>
+</resources>

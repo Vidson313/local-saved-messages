@@ -25,6 +25,8 @@ import { TagList } from "@/components/ui/TagBadge";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { MessageFormatter } from "@/components/ui/MessageFormatter";
 import { TelegramAudioPlayer } from "@/components/ui/AudioPlayer";
+import { FileUploadModal } from "@/components/ui/FileUploadModal";
+import { MediaLightbox, type MediaItem } from "@/components/ui/MediaLightbox";
 import {
   ArrowLeft,
   Bookmark,
@@ -72,6 +74,7 @@ type Msg = {
   fileName: string | null;
   fileSize: number | null;
   mimeType: string | null;
+  caption?: string | null;
   pinned: boolean;
   saved: boolean;
   tags: string[];
@@ -270,15 +273,33 @@ function isMedia(message: Msg) {
   );
 }
 
-function FilePreview({ message }: { message: Msg }) {
+function FilePreview({
+  message,
+  onOpenLightbox
+}: {
+  message: Msg;
+  onOpenLightbox?: (id: string) => void;
+}) {
   const mime = message.mimeType || "";
 
   if (mime.startsWith("image/")) {
-    return <img src={message.content} alt={message.fileName || "image"} className="tg-media tg-media-image" loading="lazy" />;
+    return (
+      <img
+        src={message.content}
+        alt={message.fileName || "image"}
+        className="tg-media tg-media-image tg-media-clickable"
+        loading="lazy"
+        onClick={() => onOpenLightbox?.(message.id)}
+      />
+    );
   }
 
   if (mime.startsWith("video/")) {
-    return <video src={message.content} controls className="tg-media tg-media-video" />;
+    return (
+      <div className="tg-video-preview-wrapper" onClick={() => onOpenLightbox?.(message.id)}>
+        <video src={message.content} controls className="tg-media tg-media-video tg-media-clickable" />
+      </div>
+    );
   }
 
   if (mime.startsWith("audio/")) {
@@ -397,6 +418,10 @@ export default function ChatApp() {
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(80);
 
+  const [uploadModalFiles, setUploadModalFiles] = useState<File[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [lightboxActiveId, setLightboxActiveId] = useState<string | null>(null);
+
   useEffect(() => {
     setVisibleCount(80);
   }, [activeChatId]);
@@ -484,6 +509,20 @@ export default function ChatApp() {
 
   const chatMessages = useMemo(() => allMessages.filter((m) => m.chatId === activeChatId), [allMessages, activeChatId]);
 
+  const mediaItems: MediaItem[] = useMemo(() => {
+    return chatMessages
+      .filter((m) => m.type === "FILE" && isMedia(m))
+      .map((m) => ({
+        id: m.id,
+        src: getDownloadUrl(m.content, false),
+        fileName: m.fileName,
+        fileSize: m.fileSize,
+        mimeType: m.mimeType,
+        caption: m.caption,
+        createdAt: m.createdAt
+      }));
+  }, [chatMessages]);
+
   const filteredMessages = useMemo(() => {
     let result = chatMessages;
 
@@ -499,8 +538,9 @@ export default function ChatApp() {
       } else {
         result = result.filter((message) => {
           const fileName = message.fileName || "";
+          const caption = message.caption || "";
           const tagText = (message.tags ?? []).map((t) => `#${t}`).join(" ");
-          return `${message.content} ${fileName} ${tagText}`.toLowerCase().includes(needle);
+          return `${message.content} ${fileName} ${caption} ${tagText}`.toLowerCase().includes(needle);
         });
       }
     }
@@ -613,16 +653,20 @@ export default function ChatApp() {
     }
   }
 
-  async function uploadFiles(files: FileList | File[]) {
+  async function uploadFiles(files: FileList | File[], caption?: string | null) {
     const items = Array.from(files);
     if (!items.length || uploading) return;
 
     setUploading(true);
     try {
-      for (const file of items) {
+      for (let i = 0; i < items.length; i++) {
+        const file = items[i];
         const fd = new FormData();
         fd.append("file", file);
         fd.append("chatId", activeChatId);
+        if (i === 0 && caption) {
+          fd.append("caption", caption);
+        }
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         if (!res.ok) {
           const errData = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -688,18 +732,24 @@ export default function ChatApp() {
     dragCounterRef.current = 0;
     setDragging(false);
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-      uploadFiles(e.dataTransfer.files);
+      setUploadModalFiles(Array.from(e.dataTransfer.files));
+      setShowUploadModal(true);
     }
   }
 
   function onFileChange(e: ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) uploadFiles(e.target.files);
+    if (e.target.files && e.target.files.length > 0) {
+      setUploadModalFiles(Array.from(e.target.files));
+      setShowUploadModal(true);
+      e.target.value = "";
+    }
   }
 
   function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     if (e.clipboardData.files.length > 0) {
       e.preventDefault();
-      uploadFiles(e.clipboardData.files);
+      setUploadModalFiles(Array.from(e.clipboardData.files));
+      setShowUploadModal(true);
     }
   }
 
@@ -791,30 +841,37 @@ export default function ChatApp() {
     }
   }
 
-  async function editMessage(id: string, newContent: string) {
-    const content = newContent.trim();
-    if (!content) return;
+  async function editMessage(id: string, newText: string) {
+    const msg = messages.find((m) => m.id === id);
+    if (!msg) return;
+
+    const trimmed = newText.trim();
+    if (msg.type === "TEXT" && !trimmed) return;
+
     try {
+      const body = msg.type === "FILE"
+        ? { caption: trimmed || null }
+        : { content: trimmed };
+
       const res = await fetch(`/api/messages/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content })
+        body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error("Edit failed");
       const updated = (await res.json()) as Msg;
       setMessages((prev) => mergeById([...prev.filter((m) => m.id !== id), updated]));
-      toast.success("Message edited.");
+      toast.success(msg.type === "FILE" ? "Caption updated." : "Message edited.");
     } catch {
-      toast.error("Failed to edit message.");
+      toast.error(msg.type === "FILE" ? "Failed to edit caption." : "Failed to edit message.");
     }
     setEditingMessageId(null);
     setEditText("");
   }
 
   function startEdit(msg: Msg) {
-    if (msg.type !== "TEXT") return;
     setEditingMessageId(msg.id);
-    setEditText(msg.content);
+    setEditText(msg.type === "FILE" ? (msg.caption || "") : msg.content);
     setContextMenu((prev) => ({ ...prev, visible: false }));
   }
 
@@ -1568,7 +1625,12 @@ export default function ChatApp() {
                           </a>
                           <span className="tg-file-size">{formatBytes(message.fileSize)}</span>
                         </div>
-                        <FilePreview message={message} />
+                        <FilePreview message={message} onOpenLightbox={setLightboxActiveId} />
+                        {message.caption && (
+                          <div className="tg-file-caption" dir="auto">
+                            <MessageFormatter content={message.caption} searchNeedle={searchNeedle} />
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1675,7 +1737,12 @@ export default function ChatApp() {
           {tab === "media" && (
             <div className="tg-media-grid">
               {mediaMessages.map((message) => (
-                <a key={message.id} href={getDownloadUrl(message.content, true)} className="tg-media-thumb" download={message.fileName || undefined}>
+                <div
+                  key={message.id}
+                  className="tg-media-thumb tg-media-clickable"
+                  onClick={() => setLightboxActiveId(message.id)}
+                  title={message.fileName || "View media"}
+                >
                   {message.mimeType?.startsWith("video/") ? (
                     <video src={message.content} muted />
                   ) : message.mimeType?.startsWith("audio/") ? (
@@ -1686,7 +1753,7 @@ export default function ChatApp() {
                   ) : (
                     <img src={message.content} alt={message.fileName || "media"} loading="lazy" />
                   )}
-                </a>
+                </div>
               ))}
             </div>
           )}
@@ -1992,7 +2059,7 @@ export default function ChatApp() {
               <span>Download</span>
             </a>
           )}
-          {contextMessage?.type === "TEXT" && (
+          {(contextMessage?.type === "TEXT" || contextMessage?.type === "FILE") && (
             <button
               className="tg-context-item"
               onClick={() => {
@@ -2000,7 +2067,7 @@ export default function ChatApp() {
               }}
             >
               <Icon name="edit" />
-              <span>Edit</span>
+              <span>{contextMessage.type === "FILE" ? "Edit Caption" : "Edit"}</span>
               <kbd className="tg-context-kbd">E</kbd>
             </button>
           )}
@@ -2051,6 +2118,27 @@ export default function ChatApp() {
           </button>
         </div>
       )}
+
+      {/* ── File Upload Modal with Caption ── */}
+      <FileUploadModal
+        files={uploadModalFiles}
+        open={showUploadModal}
+        onClose={() => {
+          setShowUploadModal(false);
+          setUploadModalFiles([]);
+        }}
+        onSend={(filesToSend, caption) => {
+          uploadFiles(filesToSend, caption);
+        }}
+      />
+
+      {/* ── Telegram Media Lightbox ── */}
+      <MediaLightbox
+        items={mediaItems}
+        activeId={lightboxActiveId}
+        onClose={() => setLightboxActiveId(null)}
+        onNavigate={(id) => setLightboxActiveId(id)}
+      />
     </main>
     </ErrorBoundary>
   );

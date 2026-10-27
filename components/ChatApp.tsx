@@ -966,19 +966,24 @@ export default function ChatApp() {
   const handleContextMenu = useCallback((e: React.MouseEvent, messageId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const historyEl = historyRef.current;
-    if (!historyEl) return;
-    const historyRect = historyEl.getBoundingClientRect();
-    const x = e.clientX - historyRect.left;
-    const y = e.clientY - historyRect.top;
     const menuWidth = 200;
-    const menuHeight = 200;
-    const clampedX = Math.min(x, historyRect.width - menuWidth);
-    const clampedY = Math.min(y, historyRect.height - menuHeight);
+    const menuHeight = 360;
+    let x = e.clientX;
+    let y = e.clientY;
+
+    // Flip upwards if menu would overflow bottom of viewport
+    if (y + menuHeight > window.innerHeight - 12) {
+      y = Math.max(12, y - menuHeight);
+    }
+    // Flip leftwards if menu would overflow right of viewport
+    if (x + menuWidth > window.innerWidth - 12) {
+      x = Math.max(12, x - menuWidth);
+    }
+
     setContextMenu({
       visible: true,
-      x: Math.max(0, clampedX),
-      y: Math.max(0, clampedY),
+      x,
+      y,
       messageId
     });
   }, []);
@@ -988,15 +993,39 @@ export default function ChatApp() {
     e.stopPropagation();
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
+    const menuWidth = 180;
+    const menuHeight = 180;
+    let x = rect.right;
+    let y = rect.bottom;
+
+    if (x + menuWidth > window.innerWidth - 12) {
+      x = Math.max(12, rect.left - menuWidth);
+    }
+    if (y + menuHeight > window.innerHeight - 12) {
+      y = Math.max(12, rect.top - menuHeight);
+    }
+
     setChatContextMenu({
       visible: true,
-      x: rect.right,
-      y: rect.bottom,
+      x,
+      y,
       chatId
     });
   }, []);
 
-  const openChatContextMenuAt = useCallback((chatId: string, x: number, y: number) => {
+  const openChatContextMenuAt = useCallback((chatId: string, clientX: number, clientY: number) => {
+    const menuWidth = 180;
+    const menuHeight = 180;
+    let x = clientX;
+    let y = clientY;
+
+    if (x + menuWidth > window.innerWidth - 12) {
+      x = Math.max(12, x - menuWidth);
+    }
+    if (y + menuHeight > window.innerHeight - 12) {
+      y = Math.max(12, y - menuHeight);
+    }
+
     setChatContextMenu({
       visible: true,
       x,
@@ -1560,120 +1589,6 @@ export default function ChatApp() {
             );
           })}
           <div ref={endRef} />
-
-          {/* Message context menu */}
-          {contextMenu.visible && contextMessage && (
-            <div
-              ref={contextMenuRef}
-              className="tg-context-menu"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-            >
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) togglePin(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name={contextMessage.pinned ? "unpin" : "pin"} />
-                <span>{contextMessage.pinned ? "Unpin" : "Pin"}</span>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) toggleSave(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name={contextMessage.saved ? "unsave" : "save"} />
-                <span>{contextMessage.saved ? "Unsave" : "Save"}</span>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) {
-                    copy(
-                      contextMessage.type === "TEXT"
-                        ? contextMessage.content
-                        : `${location.origin}${contextMessage.content}`
-                    );
-                  }
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="copy" />
-                <span>Copy</span>
-              </button>
-              {contextMessage.type === "FILE" && (
-                <a
-                  className="tg-context-item"
-                  href={getDownloadUrl(contextMessage.content, true)}
-                  download={contextMessage.fileName || undefined}
-                  onClick={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
-                >
-                  <Icon name="download" />
-                  <span>Download</span>
-                </a>
-              )}
-              {contextMessage?.type === "TEXT" && (
-                <button
-                  className="tg-context-item"
-                  onClick={() => {
-                    if (contextMessage) startEdit(contextMessage);
-                  }}
-                >
-                  <Icon name="edit" />
-                  <span>Edit</span>
-                  <kbd className="tg-context-kbd">E</kbd>
-                </button>
-              )}
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) {
-                    const msg = messages.find((m) => m.id === contextMenu.messageId);
-                    if (msg) {
-                      setReplyToMessage(msg);
-                    }
-                  }
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="reply" />
-                <span>Reply</span>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) openTagEditor(contextMenu.messageId);
-                }}
-              >
-                <Icon name="tag" />
-                <span>Tags</span>
-                <kbd className="tg-context-kbd">T</kbd>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) enterSelectMode(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="select" />
-                <span>Select</span>
-              </button>
-              <button
-                className="tg-context-item tg-context-danger"
-                onClick={() => {
-                  if (contextMenu.messageId) remove(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="delete" />
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Reply indicator */}
@@ -2022,6 +1937,120 @@ export default function ChatApp() {
           if (tagEditMessageId) saveMessageTags(tagEditMessageId, tags);
         }}
       />
+
+      {/* ── Floating Message Context Menu ── */}
+      {contextMenu.visible && contextMessage && (
+        <div
+          ref={contextMenuRef}
+          className="tg-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) togglePin(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name={contextMessage.pinned ? "unpin" : "pin"} />
+            <span>{contextMessage.pinned ? "Unpin" : "Pin"}</span>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) toggleSave(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name={contextMessage.saved ? "unsave" : "save"} />
+            <span>{contextMessage.saved ? "Unsave" : "Save"}</span>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) {
+                copy(
+                  contextMessage.type === "TEXT"
+                    ? contextMessage.content
+                    : `${location.origin}${contextMessage.content}`
+                );
+              }
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="copy" />
+            <span>Copy</span>
+          </button>
+          {contextMessage.type === "FILE" && (
+            <a
+              className="tg-context-item"
+              href={getDownloadUrl(contextMessage.content, true)}
+              download={contextMessage.fileName || undefined}
+              onClick={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
+            >
+              <Icon name="download" />
+              <span>Download</span>
+            </a>
+          )}
+          {contextMessage?.type === "TEXT" && (
+            <button
+              className="tg-context-item"
+              onClick={() => {
+                if (contextMessage) startEdit(contextMessage);
+              }}
+            >
+              <Icon name="edit" />
+              <span>Edit</span>
+              <kbd className="tg-context-kbd">E</kbd>
+            </button>
+          )}
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) {
+                const msg = messages.find((m) => m.id === contextMenu.messageId);
+                if (msg) {
+                  setReplyToMessage(msg);
+                }
+              }
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="reply" />
+            <span>Reply</span>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) openTagEditor(contextMenu.messageId);
+            }}
+          >
+            <Icon name="tag" />
+            <span>Tags</span>
+            <kbd className="tg-context-kbd">T</kbd>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) enterSelectMode(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="select" />
+            <span>Select</span>
+          </button>
+          <button
+            className="tg-context-item tg-context-danger"
+            onClick={() => {
+              if (contextMenu.messageId) remove(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="delete" />
+            <span>Delete</span>
+          </button>
+        </div>
+      )}
     </main>
     </ErrorBoundary>
   );

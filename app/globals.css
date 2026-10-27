@@ -40,6 +40,8 @@
   --tg-drop-bg: rgba(255, 255, 255, 0.7);
   --tg-drop-border: rgba(51, 144, 236, 0.55);
   --tg-drop-text: #0f65b8;
+  --tg-scrollbar: rgba(0, 0, 0, 0.2);
+  --tg-scrollbar-hover: rgba(0, 0, 0, 0.38);
 }
 
 [data-theme="dark"] {
@@ -77,10 +79,44 @@
   --tg-drop-bg: rgba(30, 30, 48, 0.85);
   --tg-drop-border: rgba(88, 166, 255, 0.4);
   --tg-drop-text: #58a6ff;
+  --tg-scrollbar: rgba(255, 255, 255, 0.22);
+  --tg-scrollbar-hover: rgba(255, 255, 255, 0.42);
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tg-scrollbar) transparent;
+}
+
+/* Telegram-style scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-scrollbar);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tg-scrollbar-hover);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 html,
@@ -960,17 +996,18 @@ button {
 }
 
 .tg-context-menu {
-  position: absolute;
-  z-index: 50;
+  position: fixed;
+  z-index: 1000;
   min-width: 180px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
   padding: 6px 0;
   border-radius: 14px;
   background: var(--tg-context-bg);
   box-shadow:
-    0 4px 22px rgba(0, 0, 0, 0.14),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
+    0 8px 30px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
   animation: tg-context-in 0.15s ease-out;
-  overflow: hidden;
 }
 
 @keyframes tg-context-in {
@@ -1079,7 +1116,7 @@ button {
 /* ── Chat context menu (in sidebar) ── */
 .tg-chat-context-menu {
   position: fixed;
-  z-index: 60;
+  z-index: 1000;
 }
 
 /* ── Modal ── */

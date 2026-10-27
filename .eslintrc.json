@@ -1,0 +1,12 @@
+{
+  "extends": "next/core-web-vitals",
+  "overrides": [
+    {
+      "files": ["electron/**/*.cjs", "scripts/**/*.mjs"],
+      "env": {
+        "node": true,
+        "es2022": true
+      }
+    }
+  ]
+}

@@ -4,7 +4,8 @@ import path from "path";
 import { broadcast } from "@/lib/events";
 import { deleteChat, updateChat } from "@/lib/store";
 
-const uploadDir = path.join(process.cwd(), "public", "uploads");
+const uploadDir =
+  process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
 
 export async function PATCH(
   req: Request,

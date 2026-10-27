@@ -6,16 +6,23 @@
     "output": "dist",
     "buildResources": "build"
   },
+  "asar": true,
+  "asarUnpack": [
+    "standalone/**/*"
+  ],
   "files": [
     "electron/**/*",
     "build/icon.ico",
-    "package.json"
+    "package.json",
+    {
+      "from": ".next/standalone",
+      "to": "standalone"
+    }
   ],
   "extraResources": [
     {
       "from": ".next/standalone",
-      "to": "app/.next/standalone",
-      "filter": ["**/*"]
+      "to": "standalone"
     }
   ],
   "win": {

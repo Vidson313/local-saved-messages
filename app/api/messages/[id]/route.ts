@@ -49,6 +49,17 @@ export async function PATCH(
     }
     updates.content = trimmed;
   }
+  if (typeof body.caption === "string") {
+    if (body.caption.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Caption exceeds maximum allowed length (${MAX_MESSAGE_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
+    updates.caption = body.caption.trim() || null;
+  } else if (body.caption === null) {
+    updates.caption = null;
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid updates" }, { status: 400 });

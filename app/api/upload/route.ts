@@ -40,6 +40,8 @@ export async function POST(req: Request) {
 
   const file = formData.get("file");
   const chatId = (formData.get("chatId") as string) || "default";
+  const rawCaption = formData.get("caption");
+  const caption = typeof rawCaption === "string" ? rawCaption.trim() || null : null;
 
   if (!(file instanceof File)) {
     return NextResponse.json(
@@ -89,6 +91,7 @@ export async function POST(req: Request) {
     fileName: validation.originalName,
     fileSize: file.size,
     mimeType: validation.mimeType,
+    caption,
     chatId
   });
 

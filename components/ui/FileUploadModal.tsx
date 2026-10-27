@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { X, Send, File as FileIcon, Image as ImageIcon, Film, Music } from "lucide-react";
+import { X, Send, File as FileIcon, Film, Music } from "lucide-react";
 
 interface FileUploadModalProps {
   files: File[];
@@ -10,8 +10,8 @@ interface FileUploadModalProps {
   onSend: (files: File[], caption: string | null) => void;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+function formatBytes(bytes: number | null | undefined): string {
+  if (!bytes) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -20,33 +20,30 @@ function formatBytes(bytes: number): string {
 
 export function FileUploadModal({ files, open, onClose, onSend }: FileUploadModalProps) {
   const [caption, setCaption] = useState("");
-  const [previews, setPreviews] = useState<{ file: File; url: string | null }[]>([]);
+  const [primaryUrl, setPrimaryUrl] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Generate object URLs for images/videos
+  const primaryFile = files && files.length > 0 ? files[0] : null;
+
+  // Generate object URL for primary media preview safely
   useEffect(() => {
-    if (!open || files.length === 0) {
-      setPreviews([]);
+    if (!open || !primaryFile) {
+      setPrimaryUrl(null);
       setCaption("");
       return;
     }
 
-    const items = files.map((file) => {
-      const isMedia = file.type.startsWith("image/") || file.type.startsWith("video/");
-      return {
-        file,
-        url: isMedia ? URL.createObjectURL(file) : null
+    const isMedia = primaryFile.type.startsWith("image/") || primaryFile.type.startsWith("video/");
+    if (isMedia) {
+      const url = URL.createObjectURL(primaryFile);
+      setPrimaryUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
       };
-    });
-
-    setPreviews(items);
-
-    return () => {
-      items.forEach((item) => {
-        if (item.url) URL.revokeObjectURL(item.url);
-      });
-    };
-  }, [files, open]);
+    } else {
+      setPrimaryUrl(null);
+    }
+  }, [primaryFile, open]);
 
   // Focus textarea when modal opens
   useEffect(() => {
@@ -58,7 +55,9 @@ export function FileUploadModal({ files, open, onClose, onSend }: FileUploadModa
     }
   }, [open]);
 
-  if (!open || files.length === 0) return null;
+  if (!open || !files || files.length === 0 || !primaryFile) {
+    return null;
+  }
 
   const handleSend = () => {
     const trimmed = caption.trim();
@@ -76,10 +75,9 @@ export function FileUploadModal({ files, open, onClose, onSend }: FileUploadModa
     }
   };
 
-  const primary = previews[0];
-  const isImage = primary?.file.type.startsWith("image/");
-  const isVideo = primary?.file.type.startsWith("video/");
-  const isAudio = primary?.file.type.startsWith("audio/");
+  const isImage = primaryFile.type.startsWith("image/");
+  const isVideo = primaryFile.type.startsWith("video/");
+  const isAudio = primaryFile.type.startsWith("audio/");
 
   return (
     <div
@@ -102,18 +100,18 @@ export function FileUploadModal({ files, open, onClose, onSend }: FileUploadModa
         <div className="tg-modal-body tg-upload-modal-body">
           {/* Main Preview Area */}
           <div className="tg-upload-preview-area">
-            {isImage && primary.url ? (
+            {isImage && primaryUrl ? (
               <div className="tg-upload-image-wrapper">
                 <img
-                  src={primary.url}
-                  alt={primary.file.name}
+                  src={primaryUrl}
+                  alt={primaryFile.name || "Image preview"}
                   className="tg-upload-image-preview"
                 />
               </div>
-            ) : isVideo && primary.url ? (
+            ) : isVideo && primaryUrl ? (
               <div className="tg-upload-video-wrapper">
                 <video
-                  src={primary.url}
+                  src={primaryUrl}
                   className="tg-upload-video-preview"
                   controls
                   muted
@@ -125,28 +123,24 @@ export function FileUploadModal({ files, open, onClose, onSend }: FileUploadModa
                   {isAudio ? <Music size={36} /> : isVideo ? <Film size={36} /> : <FileIcon size={36} />}
                 </div>
                 <div className="tg-upload-doc-info">
-                  <span className="tg-upload-doc-name" dir="auto" title={primary.file.name}>
-                    {primary.file.name}
+                  <span className="tg-upload-doc-name" dir="auto" title={primaryFile.name}>
+                    {primaryFile.name || "File"}
                   </span>
                   <span className="tg-upload-doc-size">
-                    {formatBytes(primary.file.size)}
+                    {formatBytes(primaryFile.size)}
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Multiple files indicator / thumbnails */}
+            {/* Multiple files indicator */}
             {files.length > 1 && (
               <div className="tg-upload-thumbs-row">
-                {previews.map((item, idx) => (
-                  <div key={idx} className="tg-upload-thumb-item" title={item.file.name}>
-                    {item.url && item.file.type.startsWith("image/") ? (
-                      <img src={item.url} alt={item.file.name} />
-                    ) : (
-                      <div className="tg-upload-thumb-fallback">
-                        <FileIcon size={14} />
-                      </div>
-                    )}
+                {files.map((file, idx) => (
+                  <div key={idx} className="tg-upload-thumb-item" title={file.name}>
+                    <div className="tg-upload-thumb-fallback">
+                      <FileIcon size={14} />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -75,8 +75,8 @@ async function startServer(port) {
     throw new Error(errorMsg);
   }
 
-  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
-  logStream.write(`\n--- Starting server at ${new Date().toISOString()} on port ${port} ---\n`);
+  const logFd = fs.openSync(logFile, 'a');
+  fs.writeSync(logFd, `\n--- Starting server at ${new Date().toISOString()} on port ${port} ---\n`);
 
   const env = {
     ...process.env,
@@ -91,7 +91,7 @@ async function startServer(port) {
   serverProcess = childProcess.fork(standaloneServer, [], {
     env,
     cwd: path.dirname(standaloneServer),
-    stdio: ['ignore', logStream, logStream, 'ipc']
+    stdio: ['ignore', logFd, logFd, 'ipc']
   });
 
   serverProcess.on('error', (err) => {

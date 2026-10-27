@@ -8,11 +8,40 @@ const { findFreePort } = require('./port.cjs');
 let mainWindow = null;
 let serverProcess = null;
 
+// Ensure only a single instance of the application runs at any time
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.on('ready', createWindow);
+
+  app.on('window-all-closed', () => {
+    stopServer();
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  app.on('before-quit', () => {
+    stopServer();
+  });
+}
+
 function waitForServer(url, timeoutMs = 30000) {
   const startTime = Date.now();
   return new Promise((resolve, reject) => {
     function check() {
       const req = http.get(url, (res) => {
+        // Drain response body stream to prevent memory/socket leaks
+        res.resume();
         // Require explicit HTTP 200 to confirm the application server is ready
         if (res.statusCode === 200) {
           resolve();
@@ -21,6 +50,7 @@ function waitForServer(url, timeoutMs = 30000) {
         }
       });
       req.on('error', retry);
+      req.setTimeout(2000, () => req.destroy());
       req.end();
     }
 
@@ -88,11 +118,16 @@ async function startServer(port) {
     NODE_ENV: 'production'
   };
 
-  serverProcess = childProcess.fork(standaloneServer, [], {
-    env,
-    cwd: path.dirname(standaloneServer),
-    stdio: ['ignore', logFd, logFd, 'ipc']
-  });
+  try {
+    serverProcess = childProcess.fork(standaloneServer, [], {
+      env,
+      cwd: path.dirname(standaloneServer),
+      stdio: ['ignore', logFd, logFd, 'ipc']
+    });
+  } finally {
+    // Close the file descriptor in parent process; child keeps its inherited stdio
+    fs.closeSync(logFd);
+  }
 
   serverProcess.on('error', (err) => {
     const errText = `${new Date().toISOString()} - Server process error: ${err.message}\n`;
@@ -180,16 +215,3 @@ function stopServer() {
     serverProcess = null;
   }
 }
-
-app.on('ready', createWindow);
-
-app.on('window-all-closed', () => {
-  stopServer();
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('before-quit', () => {
-  stopServer();
-});

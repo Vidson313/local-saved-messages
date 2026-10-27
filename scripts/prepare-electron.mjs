@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-async function copyDir(src, dest) {
+async function copyDir(src, dest, filter) {
   await fs.mkdir(dest, { recursive: true });
   const entries = await fs.readdir(src, { withFileTypes: true });
 
@@ -9,8 +9,12 @@ async function copyDir(src, dest) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
 
+    if (filter && !filter(srcPath, entry)) {
+      continue;
+    }
+
     if (entry.isDirectory()) {
-      await copyDir(srcPath, destPath);
+      await copyDir(srcPath, destPath, filter);
     } else {
       await fs.copyFile(srcPath, destPath);
     }
@@ -36,8 +40,14 @@ async function prepare() {
   }
 
   try {
-    await copyDir(publicSrc, publicDest);
-    console.log('✓ Copied public/ to standalone build');
+    await copyDir(publicSrc, publicDest, (srcPath, entry) => {
+      const normalized = srcPath.replace(/\\/g, '/');
+      if (normalized.includes('/public/uploads/') && !normalized.endsWith('.gitkeep')) {
+        return false;
+      }
+      return true;
+    });
+    console.log('✓ Copied public/ to standalone build (excluding local uploads)');
   } catch (err) {
     console.error('Error copying public/:', err);
     throw err;

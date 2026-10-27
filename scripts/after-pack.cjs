@@ -11,8 +11,20 @@ exports.default = async function (context) {
 
   fs.cpSync(standaloneSrc, standaloneDest, {
     recursive: true,
-    dereference: true
+    dereference: true,
+    filter: (src) => {
+      const normalized = src.replace(/\\/g, '/');
+      // Exclude local uploaded files (preserve .gitkeep)
+      if (normalized.includes('/public/uploads/') && !normalized.endsWith('.gitkeep')) {
+        return false;
+      }
+      // Exclude test database files generated during local test runs
+      if (normalized.includes('/data/test-atomic')) {
+        return false;
+      }
+      return true;
+    }
   });
 
-  console.log('✓ Successfully copied complete standalone bundle including all node_modules to:', standaloneDest);
+  console.log('✓ Successfully copied complete standalone bundle to:', standaloneDest);
 };

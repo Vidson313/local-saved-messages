@@ -1299,6 +1299,172 @@ button {
   background: var(--tg-search-bg);
 }
 
+/* ── File Upload Preview Modal ── */
+.tg-upload-modal {
+  width: min(460px, 94vw);
+}
+
+.tg-upload-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tg-upload-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--tg-search-bg);
+  padding: 12px;
+  min-height: 160px;
+  max-height: 280px;
+  overflow: hidden;
+}
+
+.tg-upload-image-wrapper {
+  max-height: 240px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.tg-upload-image-preview {
+  max-height: 240px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.tg-upload-video-wrapper {
+  max-height: 240px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tg-upload-video-preview {
+  max-height: 240px;
+  max-width: 100%;
+  border-radius: 10px;
+}
+
+.tg-upload-doc-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px;
+}
+
+.tg-upload-doc-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(51, 144, 236, 0.15);
+  color: var(--tg-blue);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.tg-upload-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.tg-upload-doc-name {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--tg-text);
+}
+
+.tg-upload-doc-size {
+  font-size: 13px;
+  color: var(--tg-muted);
+}
+
+.tg-upload-thumbs-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 4px 0;
+}
+
+.tg-upload-thumb-item {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--tg-border);
+  flex-shrink: 0;
+}
+
+.tg-upload-thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tg-upload-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--tg-ghost-hover);
+  color: var(--tg-muted);
+}
+
+.tg-upload-caption-wrapper {
+  width: 100%;
+}
+
+.tg-upload-caption-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--tg-border);
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  background: var(--tg-white);
+  color: var(--tg-text);
+  resize: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.tg-upload-caption-input:focus {
+  border-color: var(--tg-blue);
+}
+
+.tg-upload-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px 16px;
+}
+
+.tg-send-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 1180px) {
   .tg-shell {
     grid-template-columns: 312px minmax(0, 1fr);

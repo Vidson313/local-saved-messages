@@ -3,27 +3,14 @@
   "appId": "com.localsavedmessages.app",
   "productName": "Local Saved Messages",
   "directories": {
-    "output": "dist",
+    "output": "release",
     "buildResources": "build"
   },
-  "asar": true,
-  "asarUnpack": [
-    "standalone/**/*"
-  ],
+  "afterPack": "scripts/after-pack.cjs",
   "files": [
     "electron/**/*",
     "build/icon.ico",
-    "package.json",
-    {
-      "from": ".next/standalone",
-      "to": "standalone"
-    }
-  ],
-  "extraResources": [
-    {
-      "from": ".next/standalone",
-      "to": "standalone"
-    }
+    "package.json"
   ],
   "win": {
     "target": "nsis",

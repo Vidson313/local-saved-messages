@@ -7,7 +7,7 @@
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "test": "node --experimental-strip-types scripts/test-storage.mjs && node --experimental-strip-types scripts/test-realtime.mjs && node --experimental-strip-types scripts/test-upload-security.mjs && node --experimental-strip-types scripts/test-ux-components.mjs",
+    "test": "node --experimental-strip-types scripts/test-storage.mjs && node --experimental-strip-types scripts/test-realtime.mjs && node --experimental-strip-types scripts/test-upload-security.mjs && node --experimental-strip-types scripts/test-ux-components.mjs && node scripts/test-drag-drop.mjs",
     "build:icon": "node scripts/generate-icon.mjs",
     "prepare:electron": "node scripts/prepare-electron.mjs",
     "build:electron": "next build && node scripts/prepare-electron.mjs && node scripts/generate-icon.mjs && electron-builder --win nsis",

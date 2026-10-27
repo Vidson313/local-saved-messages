@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   ClipboardEvent,
+  DragEvent,
   FormEvent,
   KeyboardEvent,
   useCallback,
@@ -643,6 +644,54 @@ export default function ChatApp() {
     }
   }
 
+  const dragCounterRef = useRef(0);
+
+  useEffect(() => {
+    const preventDefault = (e: globalThis.DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("dragover", preventDefault);
+    window.addEventListener("drop", preventDefault);
+    return () => {
+      window.removeEventListener("dragover", preventDefault);
+      window.removeEventListener("drop", preventDefault);
+    };
+  }, []);
+
+  function handleDragEnter(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    if (e.dataTransfer?.types && Array.from(e.dataTransfer.types).includes("Files")) {
+      dragCounterRef.current += 1;
+      if (dragCounterRef.current === 1) {
+        setDragging(true);
+      }
+    }
+  }
+
+  function handleDragOver(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function handleDragLeave(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setDragging(false);
+    }
+  }
+
+  function handleDrop(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragging(false);
+    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      uploadFiles(e.dataTransfer.files);
+    }
+  }
+
   function onFileChange(e: ChangeEvent<HTMLInputElement>) {
     if (e.target.files) uploadFiles(e.target.files);
   }
@@ -1037,16 +1086,10 @@ export default function ChatApp() {
     <ErrorBoundary>
     <main
       className={`tg-shell ${dragging ? "tg-shell-dragging" : ""} ${!isMobileViewport && desktopHomeView ? "tg-shell-desktop-home" : ""}`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragging(false);
-        uploadFiles(e.dataTransfer.files);
-      }}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       role="application"
       aria-label="Local Saved Messages"
     >

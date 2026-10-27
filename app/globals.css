@@ -1789,6 +1789,7 @@ button {
   border: 3px dashed var(--tg-drop-border);
   border-radius: 18px;
   margin: 8px;
+  pointer-events: none;
   animation: tg-fade-in 0.15s ease-out;
 }
 

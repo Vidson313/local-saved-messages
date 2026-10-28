@@ -204,12 +204,16 @@ function formatDay(value: string) {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-function getDownloadUrl(content: string, download = true) {
+function getFileUrl(content: string, download = false) {
   if (content.startsWith("/uploads/")) {
     const filename = content.replace("/uploads/", "");
     return `/api/files/${filename}${download ? "?download=1" : ""}`;
   }
   return content;
+}
+
+function getDownloadUrl(content: string, download = true) {
+  return getFileUrl(content, download);
 }
 
 function mergeById(messages: Msg[]) {
@@ -281,11 +285,12 @@ function FilePreview({
   onOpenLightbox?: (id: string) => void;
 }) {
   const mime = message.mimeType || "";
+  const fileUrl = getFileUrl(message.content, false);
 
   if (mime.startsWith("image/")) {
     return (
       <img
-        src={message.content}
+        src={fileUrl}
         alt={message.fileName || "image"}
         className="tg-media tg-media-image tg-media-clickable"
         loading="lazy"
@@ -297,7 +302,7 @@ function FilePreview({
   if (mime.startsWith("video/")) {
     return (
       <div className="tg-video-preview-wrapper" onClick={() => onOpenLightbox?.(message.id)}>
-        <video src={message.content} controls className="tg-media tg-media-video tg-media-clickable" />
+        <video src={fileUrl} controls className="tg-media tg-media-video tg-media-clickable" />
       </div>
     );
   }
@@ -305,10 +310,10 @@ function FilePreview({
   if (mime.startsWith("audio/")) {
     return (
       <TelegramAudioPlayer
-        src={message.content}
+        src={fileUrl}
         fileName={message.fileName}
         fileSize={message.fileSize}
-        downloadUrl={getDownloadUrl(message.content, true)}
+        downloadUrl={getFileUrl(message.content, true)}
       />
     );
   }
@@ -1736,25 +1741,28 @@ export default function ChatApp() {
         <div className="tg-panel-scroll">
           {tab === "media" && (
             <div className="tg-media-grid">
-              {mediaMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className="tg-media-thumb tg-media-clickable"
-                  onClick={() => setLightboxActiveId(message.id)}
-                  title={message.fileName || "View media"}
-                >
-                  {message.mimeType?.startsWith("video/") ? (
-                    <video src={message.content} muted />
-                  ) : message.mimeType?.startsWith("audio/") ? (
-                    <div className="tg-media-audio-thumb" title={message.fileName || "Audio"}>
-                      <Icon name="file" />
-                      <span className="tg-media-audio-name">{message.fileName || "Audio"}</span>
-                    </div>
-                  ) : (
-                    <img src={message.content} alt={message.fileName || "media"} loading="lazy" />
-                  )}
-                </div>
-              ))}
+              {mediaMessages.map((message) => {
+                const mediaUrl = getFileUrl(message.content, false);
+                return (
+                  <div
+                    key={message.id}
+                    className="tg-media-thumb tg-media-clickable"
+                    onClick={() => setLightboxActiveId(message.id)}
+                    title={message.fileName || "View media"}
+                  >
+                    {message.mimeType?.startsWith("video/") ? (
+                      <video src={mediaUrl} muted />
+                    ) : message.mimeType?.startsWith("audio/") ? (
+                      <div className="tg-media-audio-thumb" title={message.fileName || "Audio"}>
+                        <Icon name="file" />
+                        <span className="tg-media-audio-name">{message.fileName || "Audio"}</span>
+                      </div>
+                    ) : (
+                      <img src={mediaUrl} alt={message.fileName || "media"} loading="lazy" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 

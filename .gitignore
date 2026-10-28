@@ -2,6 +2,7 @@ node_modules
 .next
 dist
 release
+build-output
 *.log
 data
 public/uploads/*

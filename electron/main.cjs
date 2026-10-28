@@ -73,8 +73,9 @@ function resolveStandaloneServer() {
   }
 
   const candidates = [
-    path.join(process.resourcesPath, 'app.asar.unpacked', 'standalone', 'server.js'),
     path.join(process.resourcesPath, 'standalone', 'server.js'),
+    path.join(process.resourcesPath, 'app', 'standalone', 'server.js'),
+    path.join(process.resourcesPath, 'app.asar.unpacked', 'standalone', 'server.js'),
     path.join(process.resourcesPath, 'app', '.next', 'standalone', 'server.js'),
     path.join(process.resourcesPath, '.next', 'standalone', 'server.js')
   ];

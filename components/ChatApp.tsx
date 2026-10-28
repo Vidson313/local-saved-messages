@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   ClipboardEvent,
+  DragEvent,
   FormEvent,
   KeyboardEvent,
   useCallback,
@@ -24,6 +25,8 @@ import { TagList } from "@/components/ui/TagBadge";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { MessageFormatter } from "@/components/ui/MessageFormatter";
 import { TelegramAudioPlayer } from "@/components/ui/AudioPlayer";
+import { FileUploadModal } from "@/components/ui/FileUploadModal";
+import { MediaLightbox, type MediaItem } from "@/components/ui/MediaLightbox";
 import {
   ArrowLeft,
   Bookmark,
@@ -71,6 +74,7 @@ type Msg = {
   fileName: string | null;
   fileSize: number | null;
   mimeType: string | null;
+  caption?: string | null;
   pinned: boolean;
   saved: boolean;
   tags: string[];
@@ -200,12 +204,16 @@ function formatDay(value: string) {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-function getDownloadUrl(content: string, download = true) {
+function getFileUrl(content: string, download = false) {
   if (content.startsWith("/uploads/")) {
     const filename = content.replace("/uploads/", "");
     return `/api/files/${filename}${download ? "?download=1" : ""}`;
   }
   return content;
+}
+
+function getDownloadUrl(content: string, download = true) {
+  return getFileUrl(content, download);
 }
 
 function mergeById(messages: Msg[]) {
@@ -269,24 +277,43 @@ function isMedia(message: Msg) {
   );
 }
 
-function FilePreview({ message }: { message: Msg }) {
+function FilePreview({
+  message,
+  onOpenLightbox
+}: {
+  message: Msg;
+  onOpenLightbox?: (id: string) => void;
+}) {
   const mime = message.mimeType || "";
+  const fileUrl = getFileUrl(message.content, false);
 
   if (mime.startsWith("image/")) {
-    return <img src={message.content} alt={message.fileName || "image"} className="tg-media tg-media-image" loading="lazy" />;
+    return (
+      <img
+        src={fileUrl}
+        alt={message.fileName || "image"}
+        className="tg-media tg-media-image tg-media-clickable"
+        loading="lazy"
+        onClick={() => onOpenLightbox?.(message.id)}
+      />
+    );
   }
 
   if (mime.startsWith("video/")) {
-    return <video src={message.content} controls className="tg-media tg-media-video" />;
+    return (
+      <div className="tg-video-preview-wrapper" onClick={() => onOpenLightbox?.(message.id)}>
+        <video src={fileUrl} controls className="tg-media tg-media-video tg-media-clickable" />
+      </div>
+    );
   }
 
   if (mime.startsWith("audio/")) {
     return (
       <TelegramAudioPlayer
-        src={message.content}
+        src={fileUrl}
         fileName={message.fileName}
         fileSize={message.fileSize}
-        downloadUrl={getDownloadUrl(message.content, true)}
+        downloadUrl={getFileUrl(message.content, true)}
       />
     );
   }
@@ -396,6 +423,10 @@ export default function ChatApp() {
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(80);
 
+  const [uploadModalFiles, setUploadModalFiles] = useState<File[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [lightboxActiveId, setLightboxActiveId] = useState<string | null>(null);
+
   useEffect(() => {
     setVisibleCount(80);
   }, [activeChatId]);
@@ -483,6 +514,20 @@ export default function ChatApp() {
 
   const chatMessages = useMemo(() => allMessages.filter((m) => m.chatId === activeChatId), [allMessages, activeChatId]);
 
+  const mediaItems: MediaItem[] = useMemo(() => {
+    return chatMessages
+      .filter((m) => m.type === "FILE" && isMedia(m))
+      .map((m) => ({
+        id: m.id,
+        src: getDownloadUrl(m.content, false),
+        fileName: m.fileName,
+        fileSize: m.fileSize,
+        mimeType: m.mimeType,
+        caption: m.caption,
+        createdAt: m.createdAt
+      }));
+  }, [chatMessages]);
+
   const filteredMessages = useMemo(() => {
     let result = chatMessages;
 
@@ -498,8 +543,9 @@ export default function ChatApp() {
       } else {
         result = result.filter((message) => {
           const fileName = message.fileName || "";
+          const caption = message.caption || "";
           const tagText = (message.tags ?? []).map((t) => `#${t}`).join(" ");
-          return `${message.content} ${fileName} ${tagText}`.toLowerCase().includes(needle);
+          return `${message.content} ${fileName} ${caption} ${tagText}`.toLowerCase().includes(needle);
         });
       }
     }
@@ -612,16 +658,20 @@ export default function ChatApp() {
     }
   }
 
-  async function uploadFiles(files: FileList | File[]) {
+  async function uploadFiles(files: FileList | File[], caption?: string | null) {
     const items = Array.from(files);
     if (!items.length || uploading) return;
 
     setUploading(true);
     try {
-      for (const file of items) {
+      for (let i = 0; i < items.length; i++) {
+        const file = items[i];
         const fd = new FormData();
         fd.append("file", file);
         fd.append("chatId", activeChatId);
+        if (i === 0 && caption) {
+          fd.append("caption", caption);
+        }
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         if (!res.ok) {
           const errData = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -643,14 +693,68 @@ export default function ChatApp() {
     }
   }
 
+  const dragCounterRef = useRef(0);
+
+  useEffect(() => {
+    const preventDefault = (e: globalThis.DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("dragover", preventDefault);
+    window.addEventListener("drop", preventDefault);
+    return () => {
+      window.removeEventListener("dragover", preventDefault);
+      window.removeEventListener("drop", preventDefault);
+    };
+  }, []);
+
+  function handleDragEnter(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    if (e.dataTransfer?.types && Array.from(e.dataTransfer.types).includes("Files")) {
+      dragCounterRef.current += 1;
+      if (dragCounterRef.current === 1) {
+        setDragging(true);
+      }
+    }
+  }
+
+  function handleDragOver(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function handleDragLeave(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setDragging(false);
+    }
+  }
+
+  function handleDrop(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragging(false);
+    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      setUploadModalFiles(Array.from(e.dataTransfer.files));
+      setShowUploadModal(true);
+    }
+  }
+
   function onFileChange(e: ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) uploadFiles(e.target.files);
+    if (e.target.files && e.target.files.length > 0) {
+      setUploadModalFiles(Array.from(e.target.files));
+      setShowUploadModal(true);
+      e.target.value = "";
+    }
   }
 
   function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     if (e.clipboardData.files.length > 0) {
       e.preventDefault();
-      uploadFiles(e.clipboardData.files);
+      setUploadModalFiles(Array.from(e.clipboardData.files));
+      setShowUploadModal(true);
     }
   }
 
@@ -742,30 +846,37 @@ export default function ChatApp() {
     }
   }
 
-  async function editMessage(id: string, newContent: string) {
-    const content = newContent.trim();
-    if (!content) return;
+  async function editMessage(id: string, newText: string) {
+    const msg = messages.find((m) => m.id === id);
+    if (!msg) return;
+
+    const trimmed = newText.trim();
+    if (msg.type === "TEXT" && !trimmed) return;
+
     try {
+      const body = msg.type === "FILE"
+        ? { caption: trimmed || null }
+        : { content: trimmed };
+
       const res = await fetch(`/api/messages/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content })
+        body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error("Edit failed");
       const updated = (await res.json()) as Msg;
       setMessages((prev) => mergeById([...prev.filter((m) => m.id !== id), updated]));
-      toast.success("Message edited.");
+      toast.success(msg.type === "FILE" ? "Caption updated." : "Message edited.");
     } catch {
-      toast.error("Failed to edit message.");
+      toast.error(msg.type === "FILE" ? "Failed to edit caption." : "Failed to edit message.");
     }
     setEditingMessageId(null);
     setEditText("");
   }
 
   function startEdit(msg: Msg) {
-    if (msg.type !== "TEXT") return;
     setEditingMessageId(msg.id);
-    setEditText(msg.content);
+    setEditText(msg.type === "FILE" ? (msg.caption || "") : msg.content);
     setContextMenu((prev) => ({ ...prev, visible: false }));
   }
 
@@ -917,19 +1028,24 @@ export default function ChatApp() {
   const handleContextMenu = useCallback((e: React.MouseEvent, messageId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const historyEl = historyRef.current;
-    if (!historyEl) return;
-    const historyRect = historyEl.getBoundingClientRect();
-    const x = e.clientX - historyRect.left;
-    const y = e.clientY - historyRect.top;
     const menuWidth = 200;
-    const menuHeight = 200;
-    const clampedX = Math.min(x, historyRect.width - menuWidth);
-    const clampedY = Math.min(y, historyRect.height - menuHeight);
+    const menuHeight = 360;
+    let x = e.clientX;
+    let y = e.clientY;
+
+    // Flip upwards if menu would overflow bottom of viewport
+    if (y + menuHeight > window.innerHeight - 12) {
+      y = Math.max(12, y - menuHeight);
+    }
+    // Flip leftwards if menu would overflow right of viewport
+    if (x + menuWidth > window.innerWidth - 12) {
+      x = Math.max(12, x - menuWidth);
+    }
+
     setContextMenu({
       visible: true,
-      x: Math.max(0, clampedX),
-      y: Math.max(0, clampedY),
+      x,
+      y,
       messageId
     });
   }, []);
@@ -939,15 +1055,39 @@ export default function ChatApp() {
     e.stopPropagation();
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
+    const menuWidth = 180;
+    const menuHeight = 180;
+    let x = rect.right;
+    let y = rect.bottom;
+
+    if (x + menuWidth > window.innerWidth - 12) {
+      x = Math.max(12, rect.left - menuWidth);
+    }
+    if (y + menuHeight > window.innerHeight - 12) {
+      y = Math.max(12, rect.top - menuHeight);
+    }
+
     setChatContextMenu({
       visible: true,
-      x: rect.right,
-      y: rect.bottom,
+      x,
+      y,
       chatId
     });
   }, []);
 
-  const openChatContextMenuAt = useCallback((chatId: string, x: number, y: number) => {
+  const openChatContextMenuAt = useCallback((chatId: string, clientX: number, clientY: number) => {
+    const menuWidth = 180;
+    const menuHeight = 180;
+    let x = clientX;
+    let y = clientY;
+
+    if (x + menuWidth > window.innerWidth - 12) {
+      x = Math.max(12, x - menuWidth);
+    }
+    if (y + menuHeight > window.innerHeight - 12) {
+      y = Math.max(12, y - menuHeight);
+    }
+
     setChatContextMenu({
       visible: true,
       x,
@@ -1037,16 +1177,10 @@ export default function ChatApp() {
     <ErrorBoundary>
     <main
       className={`tg-shell ${dragging ? "tg-shell-dragging" : ""} ${!isMobileViewport && desktopHomeView ? "tg-shell-desktop-home" : ""}`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragging(false);
-        uploadFiles(e.dataTransfer.files);
-      }}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       role="application"
       aria-label="Local Saved Messages"
     >
@@ -1496,7 +1630,12 @@ export default function ChatApp() {
                           </a>
                           <span className="tg-file-size">{formatBytes(message.fileSize)}</span>
                         </div>
-                        <FilePreview message={message} />
+                        <FilePreview message={message} onOpenLightbox={setLightboxActiveId} />
+                        {message.caption && (
+                          <div className="tg-file-caption" dir="auto">
+                            <MessageFormatter content={message.caption} searchNeedle={searchNeedle} />
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1517,120 +1656,6 @@ export default function ChatApp() {
             );
           })}
           <div ref={endRef} />
-
-          {/* Message context menu */}
-          {contextMenu.visible && contextMessage && (
-            <div
-              ref={contextMenuRef}
-              className="tg-context-menu"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-            >
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) togglePin(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name={contextMessage.pinned ? "unpin" : "pin"} />
-                <span>{contextMessage.pinned ? "Unpin" : "Pin"}</span>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) toggleSave(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name={contextMessage.saved ? "unsave" : "save"} />
-                <span>{contextMessage.saved ? "Unsave" : "Save"}</span>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) {
-                    copy(
-                      contextMessage.type === "TEXT"
-                        ? contextMessage.content
-                        : `${location.origin}${contextMessage.content}`
-                    );
-                  }
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="copy" />
-                <span>Copy</span>
-              </button>
-              {contextMessage.type === "FILE" && (
-                <a
-                  className="tg-context-item"
-                  href={getDownloadUrl(contextMessage.content, true)}
-                  download={contextMessage.fileName || undefined}
-                  onClick={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
-                >
-                  <Icon name="download" />
-                  <span>Download</span>
-                </a>
-              )}
-              {contextMessage?.type === "TEXT" && (
-                <button
-                  className="tg-context-item"
-                  onClick={() => {
-                    if (contextMessage) startEdit(contextMessage);
-                  }}
-                >
-                  <Icon name="edit" />
-                  <span>Edit</span>
-                  <kbd className="tg-context-kbd">E</kbd>
-                </button>
-              )}
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) {
-                    const msg = messages.find((m) => m.id === contextMenu.messageId);
-                    if (msg) {
-                      setReplyToMessage(msg);
-                    }
-                  }
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="reply" />
-                <span>Reply</span>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) openTagEditor(contextMenu.messageId);
-                }}
-              >
-                <Icon name="tag" />
-                <span>Tags</span>
-                <kbd className="tg-context-kbd">T</kbd>
-              </button>
-              <button
-                className="tg-context-item"
-                onClick={() => {
-                  if (contextMenu.messageId) enterSelectMode(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="select" />
-                <span>Select</span>
-              </button>
-              <button
-                className="tg-context-item tg-context-danger"
-                onClick={() => {
-                  if (contextMenu.messageId) remove(contextMenu.messageId);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <Icon name="delete" />
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Reply indicator */}
@@ -1716,20 +1741,28 @@ export default function ChatApp() {
         <div className="tg-panel-scroll">
           {tab === "media" && (
             <div className="tg-media-grid">
-              {mediaMessages.map((message) => (
-                <a key={message.id} href={getDownloadUrl(message.content, true)} className="tg-media-thumb" download={message.fileName || undefined}>
-                  {message.mimeType?.startsWith("video/") ? (
-                    <video src={message.content} muted />
-                  ) : message.mimeType?.startsWith("audio/") ? (
-                    <div className="tg-media-audio-thumb" title={message.fileName || "Audio"}>
-                      <Icon name="file" />
-                      <span className="tg-media-audio-name">{message.fileName || "Audio"}</span>
-                    </div>
-                  ) : (
-                    <img src={message.content} alt={message.fileName || "media"} loading="lazy" />
-                  )}
-                </a>
-              ))}
+              {mediaMessages.map((message) => {
+                const mediaUrl = getFileUrl(message.content, false);
+                return (
+                  <div
+                    key={message.id}
+                    className="tg-media-thumb tg-media-clickable"
+                    onClick={() => setLightboxActiveId(message.id)}
+                    title={message.fileName || "View media"}
+                  >
+                    {message.mimeType?.startsWith("video/") ? (
+                      <video src={mediaUrl} muted />
+                    ) : message.mimeType?.startsWith("audio/") ? (
+                      <div className="tg-media-audio-thumb" title={message.fileName || "Audio"}>
+                        <Icon name="file" />
+                        <span className="tg-media-audio-name">{message.fileName || "Audio"}</span>
+                      </div>
+                    ) : (
+                      <img src={mediaUrl} alt={message.fileName || "media"} loading="lazy" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -1978,6 +2011,141 @@ export default function ChatApp() {
         onSave={(tags) => {
           if (tagEditMessageId) saveMessageTags(tagEditMessageId, tags);
         }}
+      />
+
+      {/* ── Floating Message Context Menu ── */}
+      {contextMenu.visible && contextMessage && (
+        <div
+          ref={contextMenuRef}
+          className="tg-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) togglePin(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name={contextMessage.pinned ? "unpin" : "pin"} />
+            <span>{contextMessage.pinned ? "Unpin" : "Pin"}</span>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) toggleSave(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name={contextMessage.saved ? "unsave" : "save"} />
+            <span>{contextMessage.saved ? "Unsave" : "Save"}</span>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) {
+                copy(
+                  contextMessage.type === "TEXT"
+                    ? contextMessage.content
+                    : `${location.origin}${contextMessage.content}`
+                );
+              }
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="copy" />
+            <span>Copy</span>
+          </button>
+          {contextMessage.type === "FILE" && (
+            <a
+              className="tg-context-item"
+              href={getDownloadUrl(contextMessage.content, true)}
+              download={contextMessage.fileName || undefined}
+              onClick={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
+            >
+              <Icon name="download" />
+              <span>Download</span>
+            </a>
+          )}
+          {(contextMessage?.type === "TEXT" || contextMessage?.type === "FILE") && (
+            <button
+              className="tg-context-item"
+              onClick={() => {
+                if (contextMessage) startEdit(contextMessage);
+              }}
+            >
+              <Icon name="edit" />
+              <span>{contextMessage.type === "FILE" ? "Edit Caption" : "Edit"}</span>
+              <kbd className="tg-context-kbd">E</kbd>
+            </button>
+          )}
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) {
+                const msg = messages.find((m) => m.id === contextMenu.messageId);
+                if (msg) {
+                  setReplyToMessage(msg);
+                }
+              }
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="reply" />
+            <span>Reply</span>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) openTagEditor(contextMenu.messageId);
+            }}
+          >
+            <Icon name="tag" />
+            <span>Tags</span>
+            <kbd className="tg-context-kbd">T</kbd>
+          </button>
+          <button
+            className="tg-context-item"
+            onClick={() => {
+              if (contextMenu.messageId) enterSelectMode(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="select" />
+            <span>Select</span>
+          </button>
+          <button
+            className="tg-context-item tg-context-danger"
+            onClick={() => {
+              if (contextMenu.messageId) remove(contextMenu.messageId);
+              setContextMenu((prev) => ({ ...prev, visible: false }));
+            }}
+          >
+            <Icon name="delete" />
+            <span>Delete</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── File Upload Modal with Caption ── */}
+      <FileUploadModal
+        files={uploadModalFiles}
+        open={showUploadModal}
+        onClose={() => {
+          setShowUploadModal(false);
+          setUploadModalFiles([]);
+        }}
+        onSend={(filesToSend, caption) => {
+          uploadFiles(filesToSend, caption);
+        }}
+      />
+
+      {/* ── Telegram Media Lightbox ── */}
+      <MediaLightbox
+        items={mediaItems}
+        activeId={lightboxActiveId}
+        onClose={() => setLightboxActiveId(null)}
+        onNavigate={(id) => setLightboxActiveId(id)}
       />
     </main>
     </ErrorBoundary>

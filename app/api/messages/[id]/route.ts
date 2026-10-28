@@ -4,7 +4,8 @@ import path from "path";
 import { broadcast } from "@/lib/events";
 import { MAX_MESSAGE_LENGTH, deleteMessage, updateMessage } from "@/lib/store";
 
-const uploadDir = path.join(process.cwd(), "public", "uploads");
+const uploadDir =
+  process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
 
 export async function DELETE(
   _req: Request,
@@ -47,6 +48,17 @@ export async function PATCH(
       );
     }
     updates.content = trimmed;
+  }
+  if (typeof body.caption === "string") {
+    if (body.caption.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Caption exceeds maximum allowed length (${MAX_MESSAGE_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
+    updates.caption = body.caption.trim() || null;
+  } else if (body.caption === null) {
+    updates.caption = null;
   }
 
   if (Object.keys(updates).length === 0) {

@@ -231,6 +231,7 @@ export async function createFileMessage(input: CreateFileInput): Promise<Message
       fileName: input.fileName,
       fileSize: input.fileSize,
       mimeType: input.mimeType,
+      caption: input.caption ? input.caption.trim() : null,
       pinned: false,
       saved: false,
       tags: [],

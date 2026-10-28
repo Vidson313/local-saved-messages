@@ -14,6 +14,7 @@ export type Message = {
   fileName: string | null;
   fileSize: number | null;
   mimeType: string | null;
+  caption?: string | null;
   pinned: boolean;
   saved: boolean;
   tags: string[];
@@ -46,10 +47,11 @@ export type CreateFileInput = {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  caption?: string | null;
   chatId?: string;
 };
 
-export type UpdateMessageInput = Partial<Pick<Message, "pinned" | "saved" | "tags" | "content">>;
+export type UpdateMessageInput = Partial<Pick<Message, "pinned" | "saved" | "tags" | "content" | "caption">>;
 
 export const MAX_MESSAGE_LENGTH = 50000;
 

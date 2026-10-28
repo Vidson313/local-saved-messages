@@ -10,7 +10,8 @@ import {
   getPaginatedMessages
 } from "@/lib/store";
 
-const uploadDir = path.join(process.cwd(), "public", "uploads");
+const uploadDir =
+  process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

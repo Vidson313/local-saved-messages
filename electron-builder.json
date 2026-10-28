@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.localsavedmessages.app",
+  "productName": "Local Saved Messages",
+  "directories": {
+    "output": "build-output",
+    "buildResources": "build"
+  },
+  "asar": false,
+  "afterPack": "scripts/after-pack.cjs",
+  "files": [
+    "electron/**/*",
+    "build/icon.ico",
+    "package.json"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "build/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Local Saved Messages",
+    "artifactName": "SavedMessages-Setup-${version}.${ext}"
+  }
+}

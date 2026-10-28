@@ -2,11 +2,16 @@
   "name": "local-saved-messages",
   "version": "1.0.0",
   "private": true,
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "test": "node --experimental-strip-types scripts/test-storage.mjs && node --experimental-strip-types scripts/test-realtime.mjs && node --experimental-strip-types scripts/test-upload-security.mjs && node --experimental-strip-types scripts/test-ux-components.mjs"
+    "test": "node --experimental-strip-types scripts/test-storage.mjs && node --experimental-strip-types scripts/test-realtime.mjs && node --experimental-strip-types scripts/test-upload-security.mjs && node --experimental-strip-types scripts/test-ux-components.mjs && node scripts/test-drag-drop.mjs && node --experimental-strip-types scripts/test-caption-storage.mjs && node scripts/test-caption-ui.mjs && node scripts/test-file-serving.mjs",
+    "build:icon": "node scripts/generate-icon.mjs",
+    "prepare:electron": "node scripts/prepare-electron.mjs",
+    "build:electron": "next build && node scripts/prepare-electron.mjs && node scripts/generate-icon.mjs && electron-builder --win nsis",
+    "pack:electron": "next build && node scripts/prepare-electron.mjs && node scripts/generate-icon.mjs && electron-builder --dir"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -22,6 +27,8 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3"

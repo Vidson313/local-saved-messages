@@ -59,10 +59,10 @@ export async function GET(
   const url = new URL(req.url);
   const isDownload = url.searchParams.get("download") === "1";
 
-  // پیش‌نمایش فقط برای رسانه‌های امن معتبر است
+  // پیش‌نمایش بدون سندباکس فقط برای رسانه‌های امن معتبر است (SVG شامل سندباکس امنیتی می‌شود)
   const isSafePreviewable =
     !isDownload &&
-    (mimeType.startsWith("image/") ||
+    ((mimeType.startsWith("image/") && mimeType !== "image/svg+xml") ||
       mimeType.startsWith("video/") ||
       mimeType.startsWith("audio/") ||
       mimeType === "application/pdf");
@@ -77,15 +77,57 @@ export async function GET(
 
   const headers = new Headers();
   headers.set("Content-Type", mimeType);
-  headers.set("Content-Length", stat.size.toString());
+  headers.set("Accept-Ranges", "bytes");
   headers.set(
     "Content-Disposition",
     `${dispositionType}; filename="${safeAsciiFallback}"; filename*=UTF-8''${encodedName}`
   );
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
+  if (!isSafePreviewable) {
+    headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
+  }
   headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
+  // پشتیبانی از Range Requests جهت استریم روان، Seeking و لود سریع ویدیوها و فایل‌های صوتی
+  const rangeHeader = req.headers.get("range");
+  if (rangeHeader && stat.size > 0 && !isDownload) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+    if (match && (match[1] || match[2])) {
+      let start: number;
+      let end: number;
+      if (!match[1]) {
+        // بازه پسوندی: آخرین N بایت فایل (Suffix range)
+        const suffix = parseInt(match[2], 10);
+        start = Math.max(0, stat.size - suffix);
+        end = stat.size - 1;
+      } else {
+        start = parseInt(match[1], 10);
+        end = match[2] ? Math.min(parseInt(match[2], 10), stat.size - 1) : stat.size - 1;
+      }
+
+      if (start >= stat.size || start > end) {
+        return new Response(null, {
+          status: 416,
+          headers: { "Content-Range": `bytes */${stat.size}` }
+        });
+      }
+
+      const chunkSize = end - start + 1;
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      const rangeStream = createReadStream(filePath, { start, end });
+      const webStream = Readable.toWeb(rangeStream);
+
+      headers.set("Content-Range", `bytes ${start}-${end}/${stat.size}`);
+      headers.set("Content-Length", chunkSize.toString());
+
+      return new Response(webStream as ReadableStream, {
+        status: 206,
+        headers
+      });
+    }
+  }
+
+  headers.set("Content-Length", stat.size.toString());
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   const nodeStream = createReadStream(filePath);
   const webStream = Readable.toWeb(nodeStream);

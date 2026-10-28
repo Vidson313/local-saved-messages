@@ -7,7 +7,7 @@ import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { broadcast } from "@/lib/events";
 import { MAX_FILE_SIZE_BYTES, validateUploadedFile } from "@/lib/security/upload";
-import { createFileMessage } from "@/lib/store";
+import { MAX_MESSAGE_LENGTH, createFileMessage } from "@/lib/store";
 
 const uploadDir =
   process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
@@ -41,6 +41,12 @@ export async function POST(req: Request) {
   const file = formData.get("file");
   const chatId = (formData.get("chatId") as string) || "default";
   const rawCaption = formData.get("caption");
+  if (typeof rawCaption === "string" && rawCaption.length > MAX_MESSAGE_LENGTH) {
+    return NextResponse.json(
+      { error: `متن توضیح (کپشن) بیش از حد مجاز است (حداکثر ${MAX_MESSAGE_LENGTH} کاراکتر).` },
+      { status: 400 }
+    );
+  }
   const caption = typeof rawCaption === "string" ? rawCaption.trim() || null : null;
 
   if (!(file instanceof File)) {

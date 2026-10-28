@@ -59,10 +59,10 @@ export async function GET(
   const url = new URL(req.url);
   const isDownload = url.searchParams.get("download") === "1";
 
-  // پیش‌نمایش فقط برای رسانه‌های امن معتبر است
+  // پیش‌نمایش بدون سندباکس فقط برای رسانه‌های امن معتبر است (SVG شامل سندباکس امنیتی می‌شود)
   const isSafePreviewable =
     !isDownload &&
-    (mimeType.startsWith("image/") ||
+    ((mimeType.startsWith("image/") && mimeType !== "image/svg+xml") ||
       mimeType.startsWith("video/") ||
       mimeType.startsWith("audio/") ||
       mimeType === "application/pdf");
@@ -91,28 +91,39 @@ export async function GET(
   // پشتیبانی از Range Requests جهت استریم روان، Seeking و لود سریع ویدیوها و فایل‌های صوتی
   const rangeHeader = req.headers.get("range");
   if (rangeHeader && stat.size > 0 && !isDownload) {
-    const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
-    if (match) {
-      const startStr = match[1];
-      const endStr = match[2];
+    const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+    if (match && (match[1] || match[2])) {
+      let start: number;
+      let end: number;
+      if (!match[1]) {
+        // بازه پسوندی: آخرین N بایت فایل (Suffix range)
+        const suffix = parseInt(match[2], 10);
+        start = Math.max(0, stat.size - suffix);
+        end = stat.size - 1;
+      } else {
+        start = parseInt(match[1], 10);
+        end = match[2] ? Math.min(parseInt(match[2], 10), stat.size - 1) : stat.size - 1;
+      }
 
-      const start = startStr ? parseInt(startStr, 10) : 0;
-      const end = endStr ? parseInt(endStr, 10) : stat.size - 1;
-
-      if (!isNaN(start) && start < stat.size && end < stat.size && start <= end) {
-        const chunkSize = end - start + 1;
-        // eslint-disable-next-line security/detect-non-literal-fs-filename
-        const rangeStream = createReadStream(filePath, { start, end });
-        const webStream = Readable.toWeb(rangeStream);
-
-        headers.set("Content-Range", `bytes ${start}-${end}/${stat.size}`);
-        headers.set("Content-Length", chunkSize.toString());
-
-        return new Response(webStream as ReadableStream, {
-          status: 206,
-          headers
+      if (start >= stat.size || start > end) {
+        return new Response(null, {
+          status: 416,
+          headers: { "Content-Range": `bytes */${stat.size}` }
         });
       }
+
+      const chunkSize = end - start + 1;
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      const rangeStream = createReadStream(filePath, { start, end });
+      const webStream = Readable.toWeb(rangeStream);
+
+      headers.set("Content-Range", `bytes ${start}-${end}/${stat.size}`);
+      headers.set("Content-Length", chunkSize.toString());
+
+      return new Response(webStream as ReadableStream, {
+        status: 206,
+        headers
+      });
     }
   }
 

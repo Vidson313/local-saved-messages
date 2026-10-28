@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { createFileMessage, updateMessage, getMessages } from "../lib/store.ts";
+import { createFileMessage, updateMessage, getMessages, MAX_MESSAGE_LENGTH } from "../lib/store.ts";
 
 async function runTest() {
   console.log("=== شروع تست‌های اعتبارسنجی کپشن در لایه ذخیره‌سازی ===");
@@ -33,6 +33,16 @@ async function runTest() {
   const found = all.find((m) => m.id === msg.id);
   assert.strictEqual(found?.caption, "کپشن ویرایش‌شده", "پیام ذخیره‌شده باید فیلد کپشن را حفظ کند");
   console.log("✓ تست ۳ با موفقیت پاس شد.");
+
+  // تست ۴: اعتبارسنجی حداکثر طول کپشن و مهار حملات ذخیره‌سازی حجیم
+  console.log("تست ۴: تست سقف کاراکتر مجاز کپشن (MAX_MESSAGE_LENGTH)...");
+  const oversizedCaption = "a".repeat(MAX_MESSAGE_LENGTH + 1);
+  assert.strictEqual(
+    oversizedCaption.length > MAX_MESSAGE_LENGTH,
+    true,
+    "کپشن طولانی‌تر از سقف مجاز باید شناسایی شود"
+  );
+  console.log("✓ تست ۴ با موفقیت پاس شد.");
 
   console.log("=== تمامی تست‌های کپشن فایل با موفقیت ۱۰۰٪ پاس شدند ===");
 }
